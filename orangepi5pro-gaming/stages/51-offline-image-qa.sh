@@ -2,7 +2,7 @@ say "Offline inspection of generated image"
 docker run --rm -i --privileged --platform linux/amd64 -v "$SOURCE_IMAGE:/image.img:ro" ubuntu:26.04 bash -seu <<'OFFLINE_QA'
   export DEBIAN_FRONTEND=noninteractive; apt-get update >/dev/null; apt-get install -y --no-install-recommends util-linux file python3 >/dev/null
   loop="$(losetup --read-only --find --show -P /image.img)"; trap "umount /mnt/root 2>/dev/null || true; losetup -d \"$loop\" 2>/dev/null || true" EXIT
-  rootpart="$(lsblk -lnpo NAME,TYPE,FSTYPE "$loop" | awk '\''$2=="part" && ($3=="ext4" || $3=="btrfs") {print $1}'\'' | tail -n1)"; [[ -n "$rootpart" ]] || { echo "No root partition found" >&2; exit 1; }
+  rootpart="$(lsblk -lnpo NAME,TYPE,FSTYPE "$loop" | awk '$2=="part" && ($3=="ext4" || $3=="btrfs") {print $1}' | tail -n1)"; [[ -n "$rootpart" ]] || { echo "No root partition found" >&2; exit 1; }
   mkdir -p /mnt/root; mount -o ro "$rootpart" /mnt/root; R=/mnt/root
   required=(/etc/greetd/config.toml /etc/opi/session-mode /etc/modules-load.d/opi-gaming.conf /usr/local/bin/opi-gaming-session /usr/local/bin/opi-desktop-session /usr/local/bin/opi-stremio-hwcheck /usr/local/bin/gamepad-osk /usr/bin/epiphany /usr/share/applications/org.gnome.Epiphany.desktop /opt/stremio/stremio /opt/stremio/server.js /opt/stremio/libopi-stremio-hwdec.so /usr/bin/node /opt/opi/media/bin/mpv /opt/opi/media/bin/ffmpeg /opt/opi-build-meta/h264-hwprobe.mp4 /opt/opi-build-meta/hevc-hwprobe.mp4 /etc/systemd/zram-generator.conf.d/opi.conf /etc/systemd/system/opi-swapfile.service /etc/systemd/system/opi-performance.service)
   for f in "${required[@]}"; do [[ -e "$R$f" ]] || { echo "Missing from final image: $f" >&2; exit 1; }; done
