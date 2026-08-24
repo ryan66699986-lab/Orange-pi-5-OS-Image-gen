@@ -29,6 +29,8 @@ grep -Eq '^gamepad\|build-essential( |$)' "$PROFILE/packages/build-groups.txt"
 grep -q 'command -v gcc' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'gcc --version' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'go env CGO_ENABLED' "$PROFILE/recipes/build-gamepad-osk.sh"
+grep -q 'PI_PASS </dev/tty' "$PROFILE/stages/11-password.sh"
+grep -q 'PI_PASS2 </dev/tty' "$PROFILE/stages/11-password.sh"
 
 grep -Fq 'PROFILE_VERSION="$(<"${REPO_ROOT}/VERSION")"' "$PROFILE/profile.env"
 grep -Fq "WORK=\"\${HOME}/opi5pro-v\${PROFILE_VERSION}-work\"" "$PROFILE/profile.env"
