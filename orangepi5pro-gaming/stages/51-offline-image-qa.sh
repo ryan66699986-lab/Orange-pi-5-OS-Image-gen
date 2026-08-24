@@ -1,5 +1,5 @@
 say "Offline inspection of generated image"
-docker run --rm --privileged --platform linux/amd64 -v "$SOURCE_IMAGE:/image.img:ro" ubuntu:26.04 bash -ceu '
+docker run --rm -i --privileged --platform linux/amd64 -v "$SOURCE_IMAGE:/image.img:ro" ubuntu:26.04 bash -seu <<'OFFLINE_QA'
   export DEBIAN_FRONTEND=noninteractive; apt-get update >/dev/null; apt-get install -y --no-install-recommends util-linux file python3 >/dev/null
   loop="$(losetup --read-only --find --show -P /image.img)"; trap "umount /mnt/root 2>/dev/null || true; losetup -d \"$loop\" 2>/dev/null || true" EXIT
   rootpart="$(lsblk -lnpo NAME,TYPE,FSTYPE "$loop" | awk '\''$2=="part" && ($3=="ext4" || $3=="btrfs") {print $1}'\'' | tail -n1)"; [[ -n "$rootpart" ]] || { echo "No root partition found" >&2; exit 1; }
@@ -34,10 +34,10 @@ PY
   grep -Eq '^Package: (retroarch|libretro|lightdm|xfce4)' "$R/var/lib/dpkg/status" && { echo "Forbidden old stack unexpectedly present" >&2; exit 1; } || true
   if find "$R/opt" -type d \( -name .git -o -name node_modules \) -print -quit | grep -q .; then echo "Build tree leaked into final image" >&2; exit 1; fi
   echo "OFFLINE IMAGE QA: PASS"
-'
+OFFLINE_QA
 cp --sparse=always "$SOURCE_IMAGE" "$IMAGE_OUT"
 sha256sum "$IMAGE_OUT" > "${IMAGE_OUT}.sha256"
-{ echo "Orange Pi 5 Pro Gaming OS v3.10"; echo "Builder: repository"; echo "Built: $(date --iso-8601=seconds)"; echo "Armbian commit: $ARMBIAN_COMMIT"; echo "Board: orangepi5pro"; echo "Branch: edge"; echo "Release: resolute"; echo "Source image: $(basename "$SOURCE_IMAGE")"; echo; cat "${IMAGE_OUT}.sha256"; } > "${OUT}/${IMAGE_BASENAME}-BUILD-MANIFEST.txt"
+{ echo "Orange Pi 5 Pro Gaming OS v${PROFILE_VERSION}"; echo "Builder: repository"; echo "Built: $(date --iso-8601=seconds)"; echo "Armbian commit: $ARMBIAN_COMMIT"; echo "Board: orangepi5pro"; echo "Branch: edge"; echo "Release: resolute"; echo "Source image: $(basename "$SOURCE_IMAGE")"; echo; cat "${IMAGE_OUT}.sha256"; } > "${OUT}/${IMAGE_BASENAME}-BUILD-MANIFEST.txt"
 [[ -s "$IMAGE_OUT" && -s "${IMAGE_OUT}.sha256" ]] || die "Output image/checksum is empty"
 SUCCESS=1
 say "DONE"
