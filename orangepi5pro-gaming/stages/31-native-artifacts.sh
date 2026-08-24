@@ -1,0 +1,2 @@
+arm64_build ppsspp "$SCRIPTS/build-ppsspp.sh"
+for spec in "es-de:build-esde.sh" "gamepad-osk:build-gamepad-osk.sh" "moonlight:build-moonlight.sh" "rmg:build-rmg.sh" "flycast:build-flycast.sh" "melonds:build-melonds.sh" "azahar:build-azahar.sh" "snes9x:build-snes9x.sh" "stremio-native:build-stremio-native.sh"; do name="${spec%%:*}"; script="${spec#*:}"; install -Dm0755 "$PROFILE_DIR/recipes/$script" "$SCRIPTS/$script"; arm64_build "$name" "$SCRIPTS/$script"; done
