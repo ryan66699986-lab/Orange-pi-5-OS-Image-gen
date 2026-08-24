@@ -29,14 +29,17 @@ grep -Eq '^gamepad\|build-essential( |$)' "$PROFILE/packages/build-groups.txt"
 grep -q 'command -v gcc' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'gcc --version' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'go env CGO_ENABLED' "$PROFILE/recipes/build-gamepad-osk.sh"
+grep -Fq -- '-DCMAKE_POLICY_VERSION_MINIMUM=3.5' "$PROFILE/recipes/build-snes9x.sh"
 grep -q 'PI_PASS </dev/tty' "$PROFILE/stages/11-password.sh"
 grep -q 'PI_PASS2 </dev/tty' "$PROFILE/stages/11-password.sh"
 
 grep -Fq 'PROFILE_VERSION="$(<"${REPO_ROOT}/VERSION")"' "$PROFILE/profile.env"
 grep -Fq "WORK=\"\${HOME}/opi5pro-v\${PROFILE_VERSION}-work\"" "$PROFILE/profile.env"
 grep -Fq "IMAGE_BASENAME=\"OPi-Gaming-OS-v\${PROFILE_VERSION}-" "$PROFILE/profile.env"
+grep -Fq -- '--arg builder "v${PROFILE_VERSION}-repo"' "$PROFILE/stages/13-source-resolution.sh"
+grep -Fq 'builder:$builder' "$PROFILE/stages/13-source-resolution.sh"
 grep -Fq "bash -seu <<'OFFLINE_QA'" "$PROFILE/stages/51-offline-image-qa.sh"
 grep -qx 'OFFLINE_QA' "$PROFILE/stages/51-offline-image-qa.sh"
-! grep -En '([Vv]3\.10|failed-v3\.10)' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
+! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 
 echo "Static repository checks: PASS"

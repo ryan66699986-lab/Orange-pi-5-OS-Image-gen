@@ -11,7 +11,8 @@ git clone --recursive --depth=1 --branch "$SNES9X_TAG" \
   https://github.com/snes9xgit/snes9x.git /src
 cmake -S /src/gtk -B /src/gtk/build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_PREFIX=/usr/local
+  -DCMAKE_INSTALL_PREFIX=/usr/local \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build /src/gtk/build --parallel "$JOBS"
 DESTDIR=/out/rootfs cmake --install /src/gtk/build || true
 if ! find /out/rootfs/usr/local -type f \( -name snes9x-gtk -o -name snes9x \) -perm -u+x -print -quit 2>/dev/null | grep -q .; then

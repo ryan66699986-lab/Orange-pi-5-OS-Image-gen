@@ -1,10 +1,10 @@
 # Project status
 
-## Current generation: V3.10
+## Current generation: V3.12
 
-V3.10 is the active build under test.
+V3.12 is the active build under test.
 
-The most recent fixed failure occurred after a successful source/package/kernel preflight: a pristine Armbian checkout did not contain `userpatches/`, so V3.9 failed while copying `linux-rockchip64-edge.config`. V3.10 creates and verifies the directory immediately after cloning Armbian.
+V3.11 fixed the `gamepad-osk` CGO compiler omission and progressed through PPSSPP, ES-DE, gamepad-osk, Moonlight, RMG, Flycast, melonDS and Azahar. It then failed while configuring Snes9x 1.63 because Ubuntu 26.04 supplies CMake 4.2 and Snes9x's pinned bundled SPIRV-Cross still declares compatibility older than CMake 3.5. V3.12 supplies the policy-version compatibility floor requested by CMake and makes the source-lock builder identity derive from `VERSION`.
 
 ## Release gates still pending
 
@@ -19,4 +19,4 @@ A successful host build and offline image QA are necessary but not sufficient. H
 - real Stremio H.264 and HEVC V4L2 Request hardware decode;
 - memory/thermal behavior on the 4 GB board.
 
-Until those pass, V3.10 remains a development generation.
+Until those pass, V3.12 remains a development generation. The newly installed NVMe may be checked read-only, but it must not be initialized or used for the OS until the image is finalized.
