@@ -30,4 +30,11 @@ grep -q 'command -v gcc' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'gcc --version' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'go env CGO_ENABLED' "$PROFILE/recipes/build-gamepad-osk.sh"
 
+grep -Fq 'PROFILE_VERSION="$(<"${REPO_ROOT}/VERSION")"' "$PROFILE/profile.env"
+grep -Fq "WORK=\"\${HOME}/opi5pro-v\${PROFILE_VERSION}-work\"" "$PROFILE/profile.env"
+grep -Fq "IMAGE_BASENAME=\"OPi-Gaming-OS-v\${PROFILE_VERSION}-" "$PROFILE/profile.env"
+grep -Fq "bash -seu <<'OFFLINE_QA'" "$PROFILE/stages/51-offline-image-qa.sh"
+grep -qx 'OFFLINE_QA' "$PROFILE/stages/51-offline-image-qa.sh"
+! grep -En '([Vv]3\.10|failed-v3\.10)' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
+
 echo "Static repository checks: PASS"
