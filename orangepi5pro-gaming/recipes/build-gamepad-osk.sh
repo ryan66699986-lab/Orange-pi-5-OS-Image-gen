@@ -3,13 +3,15 @@ set -Eeuo pipefail
 source /arm64-common.sh
 apt_prepare
 apt-get install -y --no-install-recommends \
-  golang-go libsdl3-dev libsdl3-ttf-dev libx11-dev \
+  build-essential golang-go libsdl3-dev libsdl3-ttf-dev libx11-dev \
   libwayland-dev wayland-protocols fontconfig unzip
 git clone https://github.com/0x90shell/gamepad-osk.git /src
 git -C /src checkout "$GAMEPAD_OSK_COMMIT"
 cd /src
 export CGO_ENABLED=1
-go env CGO_ENABLED
+command -v gcc
+gcc --version
+[[ "$(go env CGO_ENABLED)" == 1 ]] || { echo "gamepad-osk requires CGO_ENABLED=1" >&2; exit 1; }
 go build -trimpath -ldflags='-s -w' -o gamepad-osk .
 [[ -x gamepad-osk ]] || { echo "gamepad-osk build did not produce an executable" >&2; exit 1; }
 install -Dm755 gamepad-osk /out/rootfs/usr/local/bin/gamepad-osk

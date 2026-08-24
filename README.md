@@ -11,7 +11,7 @@ The layout deliberately follows the same broad repository philosophy used by pro
 | Item | Current state |
 |---|---|
 | Profile | `orangepi5pro-gaming` |
-| Project generation | V3.10 |
+| Project generation | V3.11 |
 | Board | Orange Pi 5 Pro, RK3588S, 4 GB |
 | Base | Armbian build framework |
 | Distribution | Ubuntu 26.04 Resolute |
@@ -20,7 +20,7 @@ The layout deliberately follows the same broad repository philosophy used by pro
 | Desktop fallback | Labwc / Wayland |
 | Media | Native Stremio + RK3588 V4L2 Request FFmpeg/mpv path |
 | Browser | Epiphany/Web |
-| Status | active development; V3.10 is being built/tested and is not yet hardware-proven |
+| Status | active development; V3.11 is ready for the next fresh-workspace build/test and is not yet hardware-proven |
 
 ## Repository layout
 
