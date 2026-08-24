@@ -16,6 +16,7 @@ for cmd in "${mandatory_cmds[@]}"; do command -v "$cmd" >/dev/null 2>&1 || { ech
 if ! test -x /usr/sbin/greetd && ! command -v greetd >/dev/null 2>&1; then echo "greetd binary missing from target rootfs" >&2; exit 1; fi
 mandatory_files=(/etc/greetd/config.toml /etc/opi/session-mode /etc/gamepad-osk/config /etc/modules-load.d/opi-gaming.conf /usr/lib/udev/rules.d/80-gamepad-osk.rules /usr/local/bin/opi-gaming-session /usr/local/bin/opi-desktop-session /usr/local/bin/opi-session-dispatch /usr/local/bin/opi-stremio-hwcheck /usr/local/bin/opi-stremio-session-check /home/ryan/.emulationstation/custom_systems/es_systems.xml /opt/stremio/stremio /opt/stremio/server.js /opt/stremio/libopi-stremio-hwdec.so /opt/opi/media/bin/mpv /opt/opi/media/bin/ffmpeg /opt/opi-build-meta/h264-hwprobe.mp4 /opt/opi-build-meta/hevc-hwprobe.mp4 /opt/opi-build-meta/hevc-main10-hwprobe.mp4)
 for f in "${mandatory_files[@]}"; do [[ -e "$f" ]] || { echo "Mandatory target file missing: $f" >&2; exit 1; }; done
+[[ -e /opt/opi/media/lib/libmpv.so ]] || { echo "Dedicated libmpv linker/runtime path is missing" >&2; exit 1; }
 [[ -s /opt/stremio/server.js ]] || { echo "Stremio server.js is empty" >&2; exit 1; }
 grep -aFq 'v4l2request-copy' /opt/stremio/stremio || { echo "Stremio binary lacks mandatory v4l2request policy" >&2; exit 1; }
 [[ "$(cat /etc/opi/session-mode)" == gaming ]] || { echo "Default session mode is not gaming" >&2; exit 1; }

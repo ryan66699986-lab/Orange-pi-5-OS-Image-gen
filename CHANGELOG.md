@@ -1,6 +1,16 @@
 # Changelog
 
-## V3.13 — current development generation
+## V3.14 — current development generation
+
+- Fixed the V3.13 Stremio link failure by forcing mpv/Meson to install `libmpv.so` and `mpv.pc` under `/opt/opi/media/lib` rather than Debian's automatically selected `/opt/opi/media/lib/aarch64-linux-gnu` directory.
+- Added a pre-Cargo assertion that the mpv pkg-config libdir, linker symlink and `-L` search path all point to the dedicated media prefix.
+- Exported the verified libmpv directory through `LIBRARY_PATH` for Rust's final native link.
+- Added target-root and offline-image gates for `/opt/opi/media/lib/libmpv.so`.
+- Confirmed from the V3.13 log that exact FFmpeg/mpv source checkout, the OpenSSL 3 configure correction, FFmpeg compilation, V4L2 Request enablement and mpv compilation all succeeded before the link-path failure.
+
+V3.14 is the next test generation and is not a release declaration. Full image and hardware validation are still pending.
+
+## V3.13
 
 - Evaluated Lumera as a possible Stremio replacement. Lumera is an Android TV application built for Android/Bionic and Media3 ExoPlayer; its ARM64 APK is not a native ARM64 Linux build. Adopting it would require an Android container plus an RK3588 Android codec/HAL stack, creating a new unproven graphics, input, memory and hardware-decoding dependency chain. Native Stremio remains the lower-risk fit for the Ubuntu/Wayland image.
 - Fixed a deterministic late FFmpeg failure on Ubuntu 26.04/OpenSSL 3 by adding `--enable-version3` alongside `--enable-gpl --enable-openssl`.

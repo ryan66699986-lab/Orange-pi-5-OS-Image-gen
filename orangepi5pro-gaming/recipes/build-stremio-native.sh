@@ -74,6 +74,7 @@ git -C /mpv submodule update --init --recursive --depth=1
 }
 meson setup /mpv/build /mpv \
   --prefix=/opt/opi/media \
+  --libdir=lib \
   -Dlibmpv=true \
   -Dtests=false \
   -Dbuild-date=false
@@ -84,6 +85,21 @@ meson install -C /mpv/build
   echo "Custom mpv cannot see v4l2request" >&2
   exit 1
 }
+MPV_LIBDIR="$(pkg-config --variable=libdir mpv)"
+[[ "$MPV_LIBDIR" == /opt/opi/media/lib ]] || {
+  echo "Unexpected mpv pkg-config libdir: ${MPV_LIBDIR:-empty}" >&2
+  exit 1
+}
+[[ -e "$MPV_LIBDIR/libmpv.so" ]] || {
+  echo "libmpv linker symlink missing from $MPV_LIBDIR" >&2
+  exit 1
+}
+pkg-config --libs mpv | grep -Fq -- '-L/opt/opi/media/lib' || {
+  echo "mpv pkg-config metadata does not expose the dedicated library path" >&2
+  pkg-config --libs mpv >&2
+  exit 1
+}
+export LIBRARY_PATH="$MPV_LIBDIR:${LIBRARY_PATH:-}"
 
 git init /stremio
 git -C /stremio remote add origin https://github.com/Stremio/stremio-linux-shell.git

@@ -1,10 +1,10 @@
 # Project status
 
-## Current generation: V3.13
+## Current generation: V3.14
 
-V3.13 is the active build under test.
+V3.14 is the active build under test.
 
-V3.12 fixed the Snes9x/CMake 4 compatibility failure. The subsequent full audit found a deterministic FFmpeg/OpenSSL 3 configuration failure that would have appeared late in the run, and found that Stremio's embedded libmpv did not consume the user `mpv.conf`. V3.13 fixes both issues, pins the exact resolved FFmpeg commit during checkout, and moves Stremio and Snes9x to the beginning of native compilation.
+V3.13 proved the corrected FFmpeg/OpenSSL configuration and completed both FFmpeg and mpv, then failed at the final Stremio link because Meson installed libmpv into a Debian multiarch subdirectory that was outside the dedicated media search path. V3.14 forces a stable non-multiarch libdir and verifies pkg-config and linker visibility before Cargo begins.
 
 ## Lumera decision
 
@@ -23,4 +23,4 @@ A successful host build and offline image QA are necessary but not sufficient. H
 - real Stremio H.264, HEVC 8-bit and HEVC Main10 V4L2 Request hardware decode, including visible playback and evidence from the Stremio process itself;
 - memory/thermal behavior on the 4 GB board.
 
-Until those pass, V3.13 remains a development generation. The newly installed NVMe may be checked read-only, but it must not be initialized or used for the OS until the image is finalized.
+Until those pass, V3.14 remains a development generation. The newly installed NVMe may be checked read-only, but it must not be initialized or used for the OS until the image is finalized.

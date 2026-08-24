@@ -1,6 +1,7 @@
 say "Stremio ARM64 ABI/toolchain preflight"
 grep -Fq -- '--enable-version3' "$PROFILE_DIR/recipes/build-stremio-native.sh" || die "Stremio FFmpeg recipe lacks the OpenSSL 3 license-compatibility flag"
 grep -Fq 'init.set_property("hwdec", "v4l2request-copy")?;' "$PROFILE_DIR/recipes/build-stremio-native.sh" || die "Stremio recipe lacks the embedded libmpv V4L2 Request policy"
+grep -Fq -- '--libdir=lib' "$PROFILE_DIR/recipes/build-stremio-native.sh" || die "Stremio mpv recipe does not force the deterministic library directory"
 docker run --rm --platform linux/arm64 ubuntu:26.04 bash -ceu '
   export DEBIAN_FRONTEND=noninteractive
   sed -Ei "s/^Components:.*/Components: main restricted universe multiverse/" /etc/apt/sources.list.d/ubuntu.sources
