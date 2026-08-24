@@ -25,7 +25,7 @@ grep -q '^CONFIG_BT_HCIUART_BCM=y$' "$PROFILE/kernel/edge-overrides.conf"
 grep -q '^epiphany-browser$' "$PROFILE/packages/base.txt"
 ! grep -Eq '(^|/)(retroarch|libretro|lightdm|xfce)' "$PROFILE/packages/base.txt"
 
-grep -Eq '^gamepad\|.*(^| )build-essential( |$)' "$PROFILE/packages/build-groups.txt"
+grep -Eq '^gamepad\|build-essential( |$)' "$PROFILE/packages/build-groups.txt"
 grep -q 'command -v gcc' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'gcc --version' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'go env CGO_ENABLED' "$PROFILE/recipes/build-gamepad-osk.sh"
