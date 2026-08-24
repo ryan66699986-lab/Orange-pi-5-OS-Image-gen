@@ -6,7 +6,7 @@ cleanup() {
     [[ -f "$LOG" ]] && cp -a "$LOG" "$diag/" || true; [[ -f "$LOCK" ]] && cp -a "$LOCK" "$diag/" || true; [[ -d "$SCRIPTS" ]] && cp -a "$SCRIPTS" "$diag/" || true
     if [[ -d "$ARMBIAN/output/logs" ]]; then mkdir -p "$diag/armbian-logs"; find "$ARMBIAN/output/logs" -maxdepth 1 -type f -print0 2>/dev/null | xargs -0 -r -I{} cp -a "{}" "$diag/armbian-logs/" || true; fi
     printf '\nBUILD FAILED. Diagnostic bundle:\n  %s\n' "$diag" >&2
-    if remove_workdir "$WORK"; then printf 'The failed V${PROFILE_VERSION} workspace was completely deleted. The next attempt will be fresh.\n' >&2; else printf 'ERROR: failed V${PROFILE_VERSION} workspace could not be deleted:\n  %s\n' "$WORK" >&2; rc=1; fi
+    if remove_workdir "$WORK"; then printf 'The failed V%s workspace was completely deleted. The next attempt will be fresh.\n' "$PROFILE_VERSION" >&2; else printf 'ERROR: failed V%s workspace could not be deleted:\n  %s\n' "$PROFILE_VERSION" "$WORK" >&2; rc=1; fi
     exit "$rc"
 }
 trap cleanup EXIT INT TERM
