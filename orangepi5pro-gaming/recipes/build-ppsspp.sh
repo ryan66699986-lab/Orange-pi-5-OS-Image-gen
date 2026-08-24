@@ -10,8 +10,12 @@ apt-get install -y --no-install-recommends \
   libcurl4-openssl-dev libglew-dev libx11-dev libxi-dev \
   libxrandr-dev libxinerama-dev libxcursor-dev libudev-dev
 
-git clone --recursive --depth=1 --branch "$PPSSPP_TAG" \
-  https://github.com/hrydgard/ppsspp.git /src
+git init /src
+git -C /src remote add origin https://github.com/hrydgard/ppsspp.git
+git_net -C /src fetch --depth=1 origin "$PPSSPP_COMMIT"
+git -C /src checkout --detach FETCH_HEAD
+git_net -C /src submodule update --init --recursive --depth=1
+[[ "$(git -C /src rev-parse HEAD)" == "$PPSSPP_COMMIT" ]] || { echo "PPSSPP checkout does not match source lock" >&2; exit 1; }
 
 cmake -S /src -B /src/build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \

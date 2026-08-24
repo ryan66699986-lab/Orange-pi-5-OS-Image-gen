@@ -1,6 +1,6 @@
 say "Fresh Armbian workspace"
 [[ ! -e "$ARMBIAN" ]] || die "Armbian destination unexpectedly exists before clone"
-git clone --depth=1 https://github.com/armbian/build.git "$ARMBIAN"
+git_net clone --depth=1 https://github.com/armbian/build.git "$ARMBIAN"
 ARMBIAN_COMMIT="$(git -C "$ARMBIAN" rev-parse HEAD)"
 USERPATCHES_DIR="$ARMBIAN/userpatches"
 install -d -m0755 "$USERPATCHES_DIR"
@@ -21,7 +21,7 @@ say "Installing explicit Orange Pi gaming kernel config"
 USER_KCFG="$USERPATCHES_DIR/linux-rockchip64-edge.config"; cp -- "$KCFG" "$USER_KCFG"; [[ -s "$USER_KCFG" ]] || die "Failed to stage edge kernel config in Armbian userpatches"
 set_kcfg(){ local sym="$1" val="$2" cfg="$3"; sed -Ei "/^CONFIG_${sym}=.*/d; /^# CONFIG_${sym} is not set$/d" "$cfg"; printf 'CONFIG_%s=%s\n' "$sym" "$val" >> "$cfg"; }
 while IFS='=' read -r key val; do [[ "$key" == CONFIG_* ]] || continue; set_kcfg "${key#CONFIG_}" "$val" "$USER_KCFG"; done < "$PROFILE_DIR/kernel/edge-overrides.conf"
-for spec in "DRM_ROCKCHIP:y" "ROCKCHIP_DW_HDMI_QP:y" "DRM_DW_HDMI_QP_CEC:y" "DRM_PANTHOR:m" "VIDEO_ROCKCHIP_VDEC:m" "VIDEO_DEV:m" "MEDIA_SUPPORT:y" "MEDIA_CONTROLLER:y" "V4L_MEM2MEM_DRIVERS:y" "ZRAM:m" "ZRAM_BACKEND_ZSTD:y" "INPUT_UINPUT:m" "UHID:m" "JOYSTICK_XPAD:m" "HID_PLAYSTATION:m" "HID_NINTENDO:m" "HID_STEAM:m" "BRCMFMAC:m" "BRCMFMAC_SDIO:y" "BT:m" "BT_HCIUART:m" "BT_HCIUART_BCM:y" "RFKILL:m" "RFKILL_INPUT:y"; do sym="${spec%%:*}"; val="${spec#*:}"; grep -qx "CONFIG_${sym}=${val}" "$USER_KCFG" || die "Failed to stage CONFIG_${sym}=${val}"; done
-good "Explicit controller/uinput/HDMI-CEC kernel config staged"
+for spec in "DRM_ROCKCHIP:y" "ROCKCHIP_DW_HDMI_QP:y" "DRM_DW_HDMI_QP_CEC:y" "SOUND:m" "SND:m" "SND_SOC:m" "SND_SOC_HDMI_CODEC:m" "SND_SOC_ROCKCHIP_I2S_TDM:m" "SND_SIMPLE_CARD:m" "DRM_PANTHOR:m" "VIDEO_ROCKCHIP_VDEC:m" "VIDEO_DEV:m" "MEDIA_SUPPORT:y" "MEDIA_CONTROLLER:y" "V4L_MEM2MEM_DRIVERS:y" "ZRAM:m" "ZRAM_BACKEND_ZSTD:y" "INPUT_UINPUT:m" "UHID:m" "JOYSTICK_XPAD:m" "HID_PLAYSTATION:m" "HID_NINTENDO:m" "HID_STEAM:m" "BRCMFMAC:m" "BRCMFMAC_SDIO:y" "BT:m" "BT_HCIUART:m" "BT_HCIUART_BCM:y" "RFKILL:m" "RFKILL_INPUT:y"; do sym="${spec%%:*}"; val="${spec#*:}"; grep -qx "CONFIG_${sym}=${val}" "$USER_KCFG" || die "Failed to stage CONFIG_${sym}=${val}"; done
+good "Explicit controller/uinput/HDMI-CEC/HDMI-audio kernel config staged"
 jq --arg c "$ARMBIAN_COMMIT" '.armbian_commit=$c' "$LOCK" > "${LOCK}.tmp"; mv "${LOCK}.tmp" "$LOCK"
 install -Dm0755 "$PROFILE_DIR/recipes/arm64-common.sh" "$SCRIPTS/arm64-common.sh"

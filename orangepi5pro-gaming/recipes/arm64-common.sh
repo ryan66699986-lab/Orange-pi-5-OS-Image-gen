@@ -11,6 +11,11 @@ apt_prepare() {
     apt-get install -y --no-install-recommends ca-certificates git curl file binutils
 }
 
+git_net() {
+    GIT_TERMINAL_PROMPT=0 timeout --kill-after=30s 15m \
+        git -c http.lowSpeedLimit=1024 -c http.lowSpeedTime=120 "$@"
+}
+
 assert_aarch64_tree() {
     local root="$1" found=0 bad=0 f desc
     while IFS= read -r -d '' f; do

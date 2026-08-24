@@ -5,16 +5,22 @@ die()  { printf '\n\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
 require_host_cmds() {
     local c
-    for c in docker git curl jq python3 openssl sha256sum file readelf tar unzip gzip xz sed awk grep find df tee sort tail; do
+    for c in docker git curl jq python3 openssl sha256sum file readelf tar unzip gzip xz sed awk grep find df tee sort tail timeout; do
         command -v "$c" >/dev/null 2>&1 || die "Missing host command: $c"
     done
+}
+
+git_net() {
+    local duration="${GIT_NETWORK_TIMEOUT:-15m}"
+    GIT_TERMINAL_PROMPT=0 timeout --kill-after=30s "$duration" \
+        git -c http.lowSpeedLimit=1024 -c http.lowSpeedTime=120 "$@"
 }
 
 git_remote_ref() {
     local repo_url="$1" ref="$2" attempt out rc
     for attempt in 1 2 3 4; do
         set +e
-        out="$(git ls-remote --refs "$repo_url" "$ref" 2>"$WORK/git-ls-remote.err")"; rc=$?
+        out="$(GIT_NETWORK_TIMEOUT=90s git_net ls-remote --refs "$repo_url" "$ref" 2>"$WORK/git-ls-remote.err")"; rc=$?
         set -e
         if (( rc == 0 )); then printf '%s\n' "$out"; return 0; fi
         warn "git ls-remote failed for ${repo_url} (${attempt}/4): $(tr '\n' ' ' < "$WORK/git-ls-remote.err")"
@@ -28,7 +34,7 @@ remote_tag_commit() {
     out="$(git_remote_ref "$repo_url" "refs/tags/${tag}")" || return 1
     commit="$(awk 'NR==1 {print $1}' <<<"$out")"
     [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || return 1
-    peeled="$(git ls-remote "$repo_url" "refs/tags/${tag}^{}" 2>/dev/null | awk 'NR==1 {print $1}')"
+    peeled="$(GIT_NETWORK_TIMEOUT=90s git_net ls-remote "$repo_url" "refs/tags/${tag}^{}" 2>/dev/null | awk 'NR==1 {print $1}')"
     if [[ "$peeled" =~ ^[0-9a-f]{40}$ ]]; then commit="$peeled"; fi
     printf '%s\n' "$commit"
 }
@@ -38,7 +44,7 @@ require_github_commit() {
     local repo="$1" commit="$2" tmp
     [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || die "Invalid pinned GitHub commit syntax: ${repo} ${commit}"
     tmp="$(mktemp -d "$WORK/commit-check.XXXXXX")"; git -C "$tmp" init -q
-    git -C "$tmp" fetch -q --depth=1 "https://github.com/${repo}.git" "$commit" || { rm -rf "$tmp"; die "Unable to fetch pinned GitHub commit via Git transport: ${repo} ${commit}"; }
+    GIT_NETWORK_TIMEOUT=5m git_net -C "$tmp" fetch -q --depth=1 "https://github.com/${repo}.git" "$commit" || { rm -rf "$tmp"; die "Unable to fetch pinned GitHub commit via Git transport: ${repo} ${commit}"; }
     [[ "$(git -C "$tmp" rev-parse FETCH_HEAD)" == "$commit" ]] || { rm -rf "$tmp"; die "Pinned GitHub commit verification mismatch: ${repo} ${commit}"; }
     rm -rf "$tmp"
 }

@@ -31,7 +31,7 @@ printf 'Stremio build ABI: GTK=%s Adwaita=%s WebKit=%s Rust=%s\n' \
 
 git init /ffmpeg
 git -C /ffmpeg remote add origin "$V4L2_FFMPEG_REPO"
-git -C /ffmpeg fetch --depth=1 origin "$V4L2_FFMPEG_COMMIT"
+git_net -C /ffmpeg fetch --depth=1 origin "$V4L2_FFMPEG_COMMIT"
 git -C /ffmpeg checkout --detach FETCH_HEAD
 [[ "$(git -C /ffmpeg rev-parse HEAD)" == "$V4L2_FFMPEG_COMMIT" ]] || {
   echo "Kwiboo FFmpeg checkout does not match the resolved commit" >&2
@@ -65,9 +65,9 @@ ffmpeg -hide_banner -hwaccels 2>&1 | grep -qi v4l2request || {
 
 git init /mpv
 git -C /mpv remote add origin https://github.com/mpv-player/mpv.git
-git -C /mpv fetch --depth=1 origin "$MPV_COMMIT"
+git_net -C /mpv fetch --depth=1 origin "$MPV_COMMIT"
 git -C /mpv checkout --detach FETCH_HEAD
-git -C /mpv submodule update --init --recursive --depth=1
+git_net -C /mpv submodule update --init --recursive --depth=1
 [[ "$(git -C /mpv rev-parse HEAD)" == "$MPV_COMMIT" ]] || {
   echo "mpv checkout does not match the resolved commit" >&2
   exit 1
@@ -103,9 +103,9 @@ export LIBRARY_PATH="$MPV_LIBDIR:${LIBRARY_PATH:-}"
 
 git init /stremio
 git -C /stremio remote add origin https://github.com/Stremio/stremio-linux-shell.git
-git -C /stremio fetch --depth=1 origin "$STREMIO_COMMIT"
+git_net -C /stremio fetch --depth=1 origin "$STREMIO_COMMIT"
 git -C /stremio checkout --detach FETCH_HEAD
-git -C /stremio submodule update --init --recursive --depth=1
+git_net -C /stremio submodule update --init --recursive --depth=1
 [[ "$(git -C /stremio rev-parse HEAD)" == "$STREMIO_COMMIT" ]] || {
   echo "Stremio checkout does not match the resolved commit" >&2
   exit 1

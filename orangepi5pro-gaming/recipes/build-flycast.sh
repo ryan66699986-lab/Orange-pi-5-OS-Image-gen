@@ -7,8 +7,12 @@ apt-get install -y --no-install-recommends \
   libcurl4-openssl-dev libudev-dev libsdl2-dev \
   libgl1-mesa-dev libvulkan-dev libpulse-dev libasound2-dev \
   libusb-1.0-0-dev
-git clone --recursive --depth=1 --branch "$FLYCAST_TAG" \
-  https://github.com/flyinghead/flycast.git /src
+git init /src
+git -C /src remote add origin https://github.com/flyinghead/flycast.git
+git_net -C /src fetch --depth=1 origin "$FLYCAST_COMMIT"
+git -C /src checkout --detach FETCH_HEAD
+git_net -C /src submodule update --init --recursive --depth=1
+[[ "$(git -C /src rev-parse HEAD)" == "$FLYCAST_COMMIT" ]] || { echo "Flycast checkout does not match source lock" >&2; exit 1; }
 cmake -S /src -B /src/build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/usr/local

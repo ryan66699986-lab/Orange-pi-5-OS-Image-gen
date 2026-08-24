@@ -18,3 +18,7 @@ The builder prompts for the initial `ryan` password, hashes it immediately, and 
 Every attempt uses a fresh versioned workspace under the builder user's home directory. A failed workspace is diagnostic-only and is removed before the next attempt. Do not manually resume a failed Armbian tree.
 
 Generated images and diagnostic bundles are written outside the repository under `~/opi5pro-images`.
+
+V3.15 intentionally builds Snes9x first among native artifacts so the known GCC 15/glslang risk is resolved before the long Stremio and emulator build sequence. Do not reuse any earlier version's Armbian workspace or artifacts.
+
+The builder does not touch the Orange Pi's installed NVMe. Storage migration is a post-validation, on-device operation and is outside image generation.

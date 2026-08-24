@@ -1,6 +1,23 @@
 # Changelog
 
-## V3.14 — current development generation
+## V3.15 — current development generation
+
+- Fixed the V3.14 Snes9x 1.63 failure under Ubuntu 26.04/GCC 15 by adding the missing `<cstdint>` include to its pinned glslang `SpvBuilder.h`. The recipe validates the exact source layout, applies the patch exactly once, and compiles the affected header before starting the full build.
+- Kept native Stremio. V3.14 proved the corrected FFmpeg, mpv/libmpv and Stremio build sequence, while Lumera remains an Android/Media3 application that would require a new Android container, Android graphics stack and codec HAL on this native Ubuntu image.
+- Pinned Moonlight v6.1.0 to its resolved Git commit and linked it to the project's dedicated V4L2 Request FFmpeg libraries rather than Ubuntu's generic FFmpeg.
+- Forced Moonlight hardware decode, set 3840×2160/60 Hz/HDR defaults, added dedicated RUNPATH/linkage gates, and patched an affirmative hardware-versus-software decoder record into the pinned build. A real 4K stream must pass the runtime evidence check.
+- Expanded Stremio's mandatory offline hardware probes to cover H.264 4K, HEVC Main10 4K HDR10, VP9 4K and AV1 4K in addition to the existing codec probes.
+- Added explicit Linux 7.1-verified Rockchip HDMI-audio kernel configuration, PipeWire HDMI plus Bluetooth audio validation, and an EasySMX X20/XInput-compatible controller detector. The audit excludes the nonexistent `SND_SOC_ROCKCHIP` parent while retaining the real Rockchip I2S/TDM driver.
+- Added `nvme-cli` and a strictly read-only NVMe inventory/SMART helper. Added gates preventing partition/format operations in the image recipe and verified Armbian's installer at `/usr/bin/armbian-install`; no migration is automated.
+- Disabled appliance suspend/hibernate paths and validated the masks in both the assembled root filesystem and final offline image.
+- Restored and asserted executable modes for the documented `./build.sh` and `./tools/check.sh` entry points.
+- Bounded all network Git operations, disabled interactive credential prompts, and added low-speed failure detection so unreachable sources produce a diagnostic error instead of hanging indefinitely.
+- Resolved and built PPSSPP, RMG, Flycast, melonDS and Azahar from immutable commits rather than trusting mutable tag checkouts; each completed artifact must match its pre-build source lock.
+- Declared Steam ARM64 experimental; it remains best-effort and is not a stable-image release gate.
+
+V3.15 is the next test generation and is not a release declaration. A successful fresh build plus real Orange Pi hardware validation are still required.
+
+## V3.14
 
 - Fixed the V3.13 Stremio link failure by forcing mpv/Meson to install `libmpv.so` and `mpv.pc` under `/opt/opi/media/lib` rather than Debian's automatically selected `/opt/opi/media/lib/aarch64-linux-gnu` directory.
 - Added a pre-Cargo assertion that the mpv pkg-config libdir, linker symlink and `-L` search path all point to the dedicated media prefix.

@@ -7,8 +7,12 @@ apt-get install -y --no-install-recommends \
   libcurl4-gnutls-dev libpcap0.8-dev libsdl2-dev libarchive-dev \
   libenet-dev libzstd-dev libfaad-dev \
   qt6-base-dev qt6-base-private-dev qt6-multimedia-dev libqt6svg6-dev
-git clone --recursive --depth=1 --branch "$MELONDS_TAG" \
-  https://github.com/melonDS-emu/melonDS.git /src
+git init /src
+git -C /src remote add origin https://github.com/melonDS-emu/melonDS.git
+git_net -C /src fetch --depth=1 origin "$MELONDS_COMMIT"
+git -C /src checkout --detach FETCH_HEAD
+git_net -C /src submodule update --init --recursive --depth=1
+[[ "$(git -C /src rev-parse HEAD)" == "$MELONDS_COMMIT" ]] || { echo "melonDS checkout does not match source lock" >&2; exit 1; }
 cmake -S /src -B /src/build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/usr/local

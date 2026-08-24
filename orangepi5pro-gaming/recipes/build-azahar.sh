@@ -8,8 +8,12 @@ apt-get install -y --no-install-recommends \
   libsdl2-dev libx11-dev libxext-dev libusb-1.0-0-dev \
   qt6-base-dev qt6-base-private-dev qt6-l10n-tools \
   qt6-multimedia-dev qt6-tools-dev qt6-tools-dev-tools libvulkan-dev
-git clone --recursive --depth=1 --branch "$AZAHAR_TAG" \
-  https://github.com/azahar-emu/azahar.git /src
+git init /src
+git -C /src remote add origin https://github.com/azahar-emu/azahar.git
+git_net -C /src fetch --depth=1 origin "$AZAHAR_COMMIT"
+git -C /src checkout --detach FETCH_HEAD
+git_net -C /src submodule update --init --recursive --depth=1
+[[ "$(git -C /src rev-parse HEAD)" == "$AZAHAR_COMMIT" ]] || { echo "Azahar checkout does not match source lock" >&2; exit 1; }
 cmake -S /src -B /src/build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/usr/local \

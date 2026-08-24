@@ -12,3 +12,4 @@ while IFS= read -r stage; do
     # shellcheck disable=SC1090
     source "$stage"
 done < <(find "${PROFILE_DIR}/stages" -maxdepth 1 -type f -name '*.sh' -print | sort)
+

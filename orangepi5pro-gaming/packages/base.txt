@@ -51,6 +51,7 @@ nestopia
 network-manager
 network-manager-gnome
 nodejs
+nvme-cli
 openssh-client
 p7zip-full
 pavucontrol

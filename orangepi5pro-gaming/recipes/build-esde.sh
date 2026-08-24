@@ -10,7 +10,7 @@ apt-get install -y --no-install-recommends \
   libfreeimage-dev libfreetype6-dev libgit2-dev \
   libcurl4-gnutls-dev libpugixml-dev libbluetooth-dev \
   libpoppler-cpp-dev libasound2-dev libgles2-mesa-dev
-git clone --depth=1 --branch "$ESDE_TAG" https://gitlab.com/es-de/emulationstation-de.git /src
+git_net clone --depth=1 --branch "$ESDE_TAG" https://gitlab.com/es-de/emulationstation-de.git /src
 [[ "$(git -C /src rev-parse HEAD)" == "$ESDE_COMMIT" ]] || { echo "ES-DE checkout commit does not match resolved tag commit" >&2; exit 1; }
 cmake -S /src -B /src/build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \

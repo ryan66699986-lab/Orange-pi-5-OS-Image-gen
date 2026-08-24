@@ -5,7 +5,7 @@ apt_prepare
 apt-get install -y --no-install-recommends \
   build-essential golang-go libsdl3-dev libsdl3-ttf-dev libx11-dev \
   libwayland-dev wayland-protocols fontconfig unzip
-git clone https://github.com/0x90shell/gamepad-osk.git /src
+git_net clone https://github.com/0x90shell/gamepad-osk.git /src
 git -C /src checkout "$GAMEPAD_OSK_COMMIT"
 cd /src
 export CGO_ENABLED=1

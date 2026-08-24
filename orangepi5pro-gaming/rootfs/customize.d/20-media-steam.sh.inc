@@ -28,6 +28,19 @@ EOF
 chmod 0755 /home/ryan/ROMs/ports/Stremio.sh /home/ryan/ROMs/ports/Moonlight.sh
 chown -R ryan:ryan /home/ryan/ROMs/ports
 
+log "Moonlight: 4K-capable, hardware-decode-only defaults"
+install -d -o ryan -g ryan "/home/ryan/.config/Moonlight Game Streaming Project"
+cat > "/home/ryan/.config/Moonlight Game Streaming Project/Moonlight.conf" <<'EOF'
+[General]
+width=3840
+height=2160
+fps=60
+videocfg=0
+videodec=1
+hdr=true
+EOF
+chown -R ryan:ryan "/home/ryan/.config/Moonlight Game Streaming Project"
+
 log "Steam ARM64 bootstrap"
 cat > /usr/local/bin/steam-arm64-bootstrap <<'EOF'
 #!/usr/bin/env bash

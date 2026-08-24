@@ -1,10 +1,12 @@
 # Project status
 
-## Current generation: V3.14
+## Current generation: V3.15
 
-V3.14 is the active build under test.
+V3.15 is the active build under test.
 
-V3.13 proved the corrected FFmpeg/OpenSSL configuration and completed both FFmpeg and mpv, then failed at the final Stremio link because Meson installed libmpv into a Debian multiarch subdirectory that was outside the dedicated media search path. V3.14 forces a stable non-multiarch libdir and verifies pkg-config and linker visibility before Cargo begins.
+V3.14 proved the complete native Stremio build repair: the pinned V4L2 Request FFmpeg, dedicated mpv/libmpv and Stremio 1.1.4 all compiled successfully. The run then exposed a GCC 15 incompatibility in Snes9x 1.63's pinned glslang header, which uses `uint32_t` without including `<cstdint>`. V3.15 applies and immediately syntax-checks the minimal header correction before the full Snes9x build.
+
+The V3.15 audit also closes previously untested requirements. Moonlight is now pinned to an immutable commit, linked to the same dedicated V4L2 Request FFmpeg libraries as Stremio, forced to hardware decoding, and configured for 3840×2160 at 60 Hz with HDR enabled. Its binary and a real 4K stream must both produce affirmative hardware-decoder evidence. The image includes H.264, HEVC Main10/HDR10, VP9 and AV1 4K probes, explicit HDMI and Bluetooth audio checks, and an EasySMX X20/XInput controller detector.
 
 ## Lumera decision
 
@@ -19,8 +21,10 @@ A successful host build and offline image QA are necessary but not sufficient. H
 - Gamescope + ES-DE controller-first session;
 - broad wired/Bluetooth controller support and gamepad OSK;
 - onboard Wi-Fi and Bluetooth;
-- audio paths;
-- real Stremio H.264, HEVC 8-bit and HEVC Main10 V4L2 Request hardware decode, including visible playback and evidence from the Stremio process itself;
+- HDMI/DisplayPort and Bluetooth audio paths;
+- EasySMX X20 operation over wired USB, 2.4 GHz receiver and Bluetooth, including axes/buttons and force feedback where the transport exposes it;
+- real Stremio H.264, HEVC 8-bit, HEVC Main10/HDR10, VP9 and AV1 V4L2 Request hardware decode, including 4K visible playback and evidence from the Stremio process itself;
+- a real 3840×2160 Moonlight stream using the hardware-accelerated FFmpeg decoder;
 - memory/thermal behavior on the 4 GB board.
 
-Until those pass, V3.14 remains a development generation. The newly installed NVMe may be checked read-only, but it must not be initialized or used for the OS until the image is finalized.
+Until those pass, V3.15 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to NVMe; eMMC migration and SD removal are a later hardware transition.
