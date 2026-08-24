@@ -1,0 +1,7 @@
+out/
+*.img
+*.img.xz
+*.log
+failed-*/
+.DS_Store
+__pycache__/
