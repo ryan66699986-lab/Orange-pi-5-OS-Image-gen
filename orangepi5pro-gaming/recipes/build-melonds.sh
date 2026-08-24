@@ -13,7 +13,7 @@ cmake -S /src -B /src/build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/usr/local
 cmake --build /src/build --parallel "$JOBS"
-DESTDIR=/out/rootfs cmake --install /src/build || true
+DESTDIR=/out/rootfs cmake --install /src/build
 if ! find /out/rootfs/usr/local -type f -iname 'melonDS' -perm -u+x -print -quit 2>/dev/null | grep -q .; then
   BIN="$(find /src/build -type f -iname 'melonDS' -perm -u+x -print -quit)"
   [[ -n "$BIN" ]] || { echo "melonDS frontend executable not found after build" >&2; exit 1; }

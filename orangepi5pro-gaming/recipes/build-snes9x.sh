@@ -14,7 +14,7 @@ cmake -S /src/gtk -B /src/gtk/build -G Ninja \
   -DCMAKE_INSTALL_PREFIX=/usr/local \
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build /src/gtk/build --parallel "$JOBS"
-DESTDIR=/out/rootfs cmake --install /src/gtk/build || true
+DESTDIR=/out/rootfs cmake --install /src/gtk/build
 if ! find /out/rootfs/usr/local -type f \( -name snes9x-gtk -o -name snes9x \) -perm -u+x -print -quit 2>/dev/null | grep -q .; then
   BIN="$(find /src/gtk/build -type f \( -name snes9x-gtk -o -name snes9x \) -perm -u+x -print -quit)"
   [[ -n "$BIN" ]] || { echo "Snes9x GTK frontend executable not found after build" >&2; exit 1; }

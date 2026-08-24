@@ -20,8 +20,17 @@ cat > /usr/local/bin/opi-gaming-child <<'EOF'
 set -Eeuo pipefail
 mkdir -p "$HOME/.local/state/opi"
 gamepad-osk --daemon --config /etc/gamepad-osk/config >>"$HOME/.local/state/opi/gamepad-osk.log" 2>&1 &
+osk_pid=$!
+udiskie --automount --no-notify >>"$HOME/.local/state/opi/udiskie.log" 2>&1 &
+udiskie_pid=$!
+cleanup(){ kill "$osk_pid" "$udiskie_pid" 2>/dev/null || true; }
+trap cleanup EXIT INT TERM
 /usr/local/bin/opi-rom-scan || true
-exec es-de
+set +e
+es-de
+rc=$?
+set -e
+exit "$rc"
 EOF
 chmod 0755 /usr/local/bin/opi-gaming-child
 cat > /usr/local/bin/opi-gaming-session <<'EOF'

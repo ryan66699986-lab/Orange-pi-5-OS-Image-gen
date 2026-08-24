@@ -20,7 +20,7 @@ cmake -S /src -B /src/build -G Ninja \
   -DVIDEO_HW_DECODING=ON \
   -DAPPLICATION_UPDATER=OFF
 cmake --build /src/build --parallel "$JOBS"
-DESTDIR=/out/rootfs cmake --install /src/build || true
+DESTDIR=/out/rootfs cmake --install /src/build
 if ! find /out/rootfs/usr/local -type f -name es-de -perm -u+x -print -quit 2>/dev/null | grep -q .; then
   BIN="$(find /src/build -type f -name es-de -perm -u+x -print -quit)"
   [[ -n "$BIN" ]] || { echo "ES-DE frontend executable not found after build" >&2; exit 1; }

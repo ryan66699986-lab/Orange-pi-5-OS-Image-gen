@@ -1,6 +1,6 @@
 log "Native Stremio hardware-decode stack"
 test -x /opt/stremio/stremio || { echo "Native Stremio shell missing" >&2; exit 1; }
-test -f /opt/stremio/server.js || { echo "Stremio server.js missing" >&2; exit 1; }
+test -s /opt/stremio/server.js || { echo "Stremio server.js missing or empty" >&2; exit 1; }
 test -x /opt/opi/media/bin/mpv || { echo "Custom mpv missing" >&2; exit 1; }
 test -x /opt/opi/media/bin/ffmpeg || { echo "Custom FFmpeg missing" >&2; exit 1; }
 command -v node >/dev/null || { echo "Ubuntu ARM64 Node.js missing" >&2; exit 1; }

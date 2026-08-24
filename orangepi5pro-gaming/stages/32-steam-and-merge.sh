@@ -5,6 +5,14 @@ if STEAM_MANIFEST="$(curl --retry 3 --retry-delay 2 -fsSL "$STEAM_MANIFEST_URL" 
 GE_SEEDED=false
 if [[ -n "$GE_URL" ]] && download "$GE_URL" "$DOWNLOADS/ge-proton-aarch64.tar.gz"; then mkdir -p "$ART/ge-proton/rootfs/opt/opi-seed"; cp "$DOWNLOADS/ge-proton-aarch64.tar.gz" "$ART/ge-proton/rootfs/opt/opi-seed/"; GE_SEEDED=true; good "GE-Proton AArch64 staged"; fi
 jq --argjson steam "$STEAM_SEEDED" --argjson ge "$GE_SEEDED" '.components.steam_arm64_seeded=$steam | .components.ge_proton_aarch64_seeded=$ge' "$LOCK" > "${LOCK}.tmp"; mv "${LOCK}.tmp" "$LOCK"
+say "Recording downloaded artifact hashes"
+jq '.artifact_sha256={}' "$LOCK" > "${LOCK}.tmp"; mv "${LOCK}.tmp" "$LOCK"
+while IFS= read -r -d '' artifact; do
+    artifact_name="$(basename "$artifact")"
+    artifact_hash="$(sha_file "$artifact")"
+    jq --arg name "$artifact_name" --arg hash "$artifact_hash" '.artifact_sha256[$name]=$hash' "$LOCK" > "${LOCK}.tmp"
+    mv "${LOCK}.tmp" "$LOCK"
+done < <(find "$DOWNLOADS" -maxdepth 1 -type f -print0 | sort -z)
 say "Checking artifact path collisions"
 python3 - "$ART" <<'PY'
 from pathlib import Path

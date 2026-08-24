@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
-log(){ printf '\n[OPI V3.10] %s\n' "$*"; }
+log(){ printf '\n[OPI] %s\n' "$*"; }
 
 [[ -d /tmp/overlay ]] || { echo "Armbian overlay missing" >&2; exit 1; }
 install -d -m0755 /opt/opi-build-meta /opt/opi /usr/local/libexec/opi-emulators

@@ -23,7 +23,7 @@ cmake --build /src/build --parallel "$JOBS"
 ctest --test-dir /src/build --output-on-failure || \
   echo "WARN: Azahar tests had headless/QEMU failures"
 mkdir -p /out/rootfs/usr/local/bin
-DESTDIR=/out/rootfs cmake --install /src/build || true
+DESTDIR=/out/rootfs cmake --install /src/build
 if ! find /out/rootfs/usr/local -type f \( -name azahar -o -name citra-qt -o -name azahar-qt \) -perm -u+x -print -quit 2>/dev/null | grep -q .; then
   BIN="$(find /src/build -type f \( -name azahar -o -name citra-qt -o -name azahar-qt \) -perm -u+x -print -quit)"
   [[ -n "$BIN" ]] || { echo "Azahar frontend executable not found after build" >&2; exit 1; }

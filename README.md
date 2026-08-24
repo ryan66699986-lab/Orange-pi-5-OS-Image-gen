@@ -11,16 +11,16 @@ The layout deliberately follows the same broad repository philosophy used by pro
 | Item | Current state |
 |---|---|
 | Profile | `orangepi5pro-gaming` |
-| Project generation | V3.12 |
+| Project generation | V3.13 |
 | Board | Orange Pi 5 Pro, RK3588S, 4 GB |
 | Base | Armbian build framework |
 | Distribution | Ubuntu 26.04 Resolute |
 | Kernel | Armbian `edge`, Linux 7.1+ required |
 | Session | greetd → Gamescope → ES-DE |
 | Desktop fallback | Labwc / Wayland |
-| Media | Native Stremio + RK3588 V4L2 Request FFmpeg/mpv path |
+| Media | Native Stremio + enforced RK3588 V4L2 Request FFmpeg/libmpv path |
 | Browser | Epiphany/Web |
-| Status | active development; V3.12 is ready for the next fresh-workspace build/test and is not yet hardware-proven |
+| Status | active development; V3.13 is ready for the next fresh-workspace build/test and is not yet hardware-proven |
 
 ## Repository layout
 
@@ -66,4 +66,4 @@ Changes should now be made here first:
 5. attach the resulting build log to the issue/commit discussion when diagnosing a failure;
 6. tag known-good milestones only after the image and hardware validation gates pass.
 
-See `docs/ARCHITECTURE.md`, `docs/BUILDING.md`, `docs/STATUS.md` and `docs/VALIDATION.md`.
+See `docs/ARCHITECTURE.md`, `docs/BUILDING.md`, `docs/STATUS.md`, `docs/VALIDATION.md` and the current `docs/V3.13-AUDIT.md`.

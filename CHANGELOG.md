@@ -1,6 +1,25 @@
 # Changelog
 
-## V3.12 — current development generation
+## V3.13 — current development generation
+
+- Evaluated Lumera as a possible Stremio replacement. Lumera is an Android TV application built for Android/Bionic and Media3 ExoPlayer; its ARM64 APK is not a native ARM64 Linux build. Adopting it would require an Android container plus an RK3588 Android codec/HAL stack, creating a new unproven graphics, input, memory and hardware-decoding dependency chain. Native Stremio remains the lower-risk fit for the Ubuntu/Wayland image.
+- Fixed a deterministic late FFmpeg failure on Ubuntu 26.04/OpenSSL 3 by adding `--enable-version3` alongside `--enable-gpl --enable-openssl`.
+- Replaced the moving-ref FFmpeg, mpv and Stremio clones with direct fetches and detached checkouts of the commits resolved into `versions.lock.json`.
+- Patched the pinned Stremio libmpv initializer before compilation so `hwdec=v4l2request-copy` and `hwdec-codecs=all` are properties of the actual Stremio player, rather than relying on a user `mpv.conf` that embedded libmpv does not load by default. The existing preload guard remains as defense in depth.
+- Added build-time binary inspection for the Stremio V4L2 Request policy and non-empty `server.js` checks in the recipe, target-root gate and final offline image QA.
+- Added `RUST_LOG=warn,vd=debug` to the Stremio launcher and `opi-stremio-session-check` so real playback in the Stremio process must leave evidence of `v4l2request-copy` use.
+- Expanded the RK3588 hardware probe set to H.264, HEVC 8-bit and HEVC Main10. `opi-stremio-hwcheck --visible` can exercise the real GPU display path in addition to the headless decoder gate.
+- Moved Stremio and Snes9x to the start of native artifact compilation so the two highest-risk builds fail early.
+- Started and supervised USB automount in the default Gamescope/ES-DE child, not only the Labwc fallback.
+- Removed suppressed CMake install failures from the native ES-DE, RMG, Flycast, melonDS, Azahar and Snes9x recipes; incomplete resource installation now stops the responsible artifact immediately.
+- Added syntax validation for the embedded offline-image QA program, main-branch CI, and regression checks covering the new media guarantees.
+- Restored the executable bit on `tools/check.sh`, allowing the documented `./tools/check.sh` command and CI job to run directly.
+- Added manifest entries for the exact commits produced by every native Git build and SHA-256 hashes for every downloaded payload, including mutable or optional release assets.
+- Removed the stale V3.10 label from target customization logs.
+
+V3.13 is the next test generation and is not a release declaration. Full image and hardware validation are still pending.
+
+## V3.12
 
 - Fixed the V3.11 Snes9x 1.63 configuration failure under Ubuntu 26.04 Resolute's CMake 4.2 by explicitly setting `CMAKE_POLICY_VERSION_MINIMUM=3.5` for its legacy bundled SPIRV-Cross project.
 - Corrected the source-lock manifest's `builder` field to derive from the repository `VERSION` instead of retaining the stale `v3.10-repo` value.

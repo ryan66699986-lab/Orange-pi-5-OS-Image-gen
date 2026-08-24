@@ -4,23 +4,45 @@ cat > /usr/local/bin/opi-stremio-hwcheck <<'EOF'
 set -Eeuo pipefail
 mpv=/opt/opi/media/bin/mpv
 ff=/opt/opi/media/bin/ffmpeg
+visible=0
+if [[ "${1:-}" == --visible ]]; then visible=1; shift; fi
+if (($#)); then echo "Usage: opi-stremio-hwcheck [--visible]" >&2; exit 2; fi
 export LD_LIBRARY_PATH="/opt/opi/media/lib:/opt/opi/media/lib64:${LD_LIBRARY_PATH:-}"
 [[ -x "$mpv" && -x "$ff" ]] || { echo "FAIL: dedicated V4L2-request mpv/FFmpeg stack missing"; exit 1; }
 "$ff" -hide_banner -hwaccels 2>&1 | grep -qi v4l2request || { echo "FAIL: custom FFmpeg does not expose v4l2request"; exit 1; }
 test_one() {
   local codec="$1" file="$2" log
+  local -a video_args=(--vo=null)
+  ((visible)) && video_args=(--fs --vo=gpu-next,gpu)
   [[ -s "$file" ]] || { echo "FAIL: $codec hardware-decode probe is missing: $file"; return 1; }
   log="$(mktemp)"
-  if "$mpv" --no-config --vo=null --ao=null --hwdec=v4l2request-copy --hwdec-codecs=all --frames=30 --msg-level=all=warn,vd=debug "$file" >"$log" 2>&1 && grep -Eqi 'Using hardware decoding.*v4l2request-copy' "$log"; then
+  if "$mpv" --no-config "${video_args[@]}" --ao=null --hwdec=v4l2request-copy --hwdec-codecs=all --frames=30 --msg-level=all=warn,vd=debug "$file" >"$log" 2>&1 && grep -Eqi 'Using hardware decoding.*v4l2request-copy' "$log"; then
     echo "PASS: $codec decoded through v4l2request-copy"; rm -f "$log"; return 0
   fi
   echo "FAIL: $codec did not use v4l2request-copy"; cat "$log"; rm -f "$log"; return 1
 }
 test_one H264 /opt/opi-build-meta/h264-hwprobe.mp4
 test_one HEVC /opt/opi-build-meta/hevc-hwprobe.mp4
-echo "PASS: RK3588 H.264 + HEVC hardware-decode gate"
+test_one HEVC-Main10 /opt/opi-build-meta/hevc-main10-hwprobe.mp4
+echo "PASS: RK3588 H.264 + HEVC + HEVC Main10 hardware-decode gate"
 EOF
 chmod 0755 /usr/local/bin/opi-stremio-hwcheck
+cat > /usr/local/bin/opi-stremio-session-check <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+log="${XDG_STATE_HOME:-$HOME/.local/state}/opi/stremio.log"
+[[ -s "$log" ]] || {
+  echo "FAIL: no Stremio playback log yet. Play H.264 and HEVC video in Stremio first: $log"
+  exit 1
+}
+if grep -Eqi 'Using hardware decoding.*v4l2request-copy' "$log"; then
+  echo "PASS: Stremio's embedded libmpv used v4l2request-copy"
+  exit 0
+fi
+echo "FAIL: Stremio playback log has no v4l2request-copy hardware-decode evidence: $log"
+exit 1
+EOF
+chmod 0755 /usr/local/bin/opi-stremio-session-check
 cat > /usr/local/bin/opi-media-hwtest <<'EOF'
 #!/usr/bin/env bash
 set +e
@@ -60,6 +82,7 @@ test -x /opt/stremio/stremio && pass "Native Stremio shell" || fail "Native Stre
 command -v node >/dev/null && pass "Ubuntu ARM64 Node.js" || fail "Node.js missing"
 test -f /opt/stremio/libopi-stremio-hwdec.so && pass "Stremio hwdec override" || fail "Stremio hwdec override missing"
 if /usr/local/bin/opi-stremio-hwcheck >/tmp/opi-hwcheck.log 2>&1; then pass "REAL RK3588 hardware video decode"; else fail "Stremio hardware-decode gate failed; see /tmp/opi-hwcheck.log"; fi
+if /usr/local/bin/opi-stremio-session-check >/tmp/opi-stremio-session-check.log 2>&1; then pass "Stremio process hardware-decode evidence"; else warn "Play H.264 and HEVC in Stremio, then run opi-stremio-session-check"; fi
 for spec in "PS1:duckstation" "PS2:armsx2" "PSP:ppsspp" "N64:rmg" "Dreamcast:flycast" "GameCube/Wii:dolphin-emu" "GB/GBC:sameboy" "GBA:mgba-qt" "DS:melonds" "3DS:azahar" "NES:nestopia" "SNES:snes9x-gtk"; do name="${spec%%:*}"; exe="${spec#*:}"; command -v "$exe" >/dev/null && pass "$name emulator" || fail "$name emulator missing: $exe"; done
 command -v epiphany >/dev/null && pass "Epiphany/Web browser" || fail "Epiphany browser missing"
 command -v wpctl >/dev/null && pass "PipeWire/WirePlumber" || fail "Audio tools missing"
@@ -70,7 +93,7 @@ bluetoothctl list 2>/dev/null | grep -q '^Controller ' && pass "Bluetooth HCI co
 command -v cec-ctl >/dev/null && pass "Kernel HDMI-CEC tools" || warn "cec-ctl missing"
 compgen -G '/dev/cec*' >/dev/null && pass "HDMI-CEC adapter node" || warn "No /dev/cec* node"
 test -e /dev/dri/renderD128 && pass "DRM render node" || warn "DRM render node missing"
-info "Stremio HW decode is a hard runtime gate: opi-stremio-hwcheck must PASS"
+info "Stremio HW decode is a hard runtime gate: opi-stremio-hwcheck and post-playback opi-stremio-session-check must PASS"
 echo; echo "TOTAL: $P PASS, $W WARN, $F FAIL, $I INFO"; ((F==0))
 EOF
 chmod 0755 /usr/local/bin/opi-validate

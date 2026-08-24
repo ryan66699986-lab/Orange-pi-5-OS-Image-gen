@@ -29,10 +29,12 @@ printf 'Stremio build ABI: GTK=%s Adwaita=%s WebKit=%s Rust=%s\n' \
   "$(pkg-config --modversion webkitgtk-6.0)" \
   "$RUSTVER"
 
-git clone --depth=1 --branch "$V4L2_FFMPEG_BRANCH" \
-  "$V4L2_FFMPEG_REPO" /ffmpeg
+git init /ffmpeg
+git -C /ffmpeg remote add origin "$V4L2_FFMPEG_REPO"
+git -C /ffmpeg fetch --depth=1 origin "$V4L2_FFMPEG_COMMIT"
+git -C /ffmpeg checkout --detach FETCH_HEAD
 [[ "$(git -C /ffmpeg rev-parse HEAD)" == "$V4L2_FFMPEG_COMMIT" ]] || {
-  echo "Kwiboo FFmpeg branch moved after preflight; refusing an un-audited source" >&2
+  echo "Kwiboo FFmpeg checkout does not match the resolved commit" >&2
   exit 1
 }
 
@@ -44,6 +46,7 @@ cd /ffmpeg
   --disable-doc \
   --disable-debug \
   --enable-gpl \
+  --enable-version3 \
   --enable-openssl \
   --enable-libdrm \
   --enable-libudev \
@@ -60,8 +63,15 @@ ffmpeg -hide_banner -hwaccels 2>&1 | grep -qi v4l2request || {
   exit 1
 }
 
-git clone --recursive --depth=1 --branch "$MPV_TAG" \
-  https://github.com/mpv-player/mpv.git /mpv
+git init /mpv
+git -C /mpv remote add origin https://github.com/mpv-player/mpv.git
+git -C /mpv fetch --depth=1 origin "$MPV_COMMIT"
+git -C /mpv checkout --detach FETCH_HEAD
+git -C /mpv submodule update --init --recursive --depth=1
+[[ "$(git -C /mpv rev-parse HEAD)" == "$MPV_COMMIT" ]] || {
+  echo "mpv checkout does not match the resolved commit" >&2
+  exit 1
+}
 meson setup /mpv/build /mpv \
   --prefix=/opt/opi/media \
   -Dlibmpv=true \
@@ -75,9 +85,32 @@ meson install -C /mpv/build
   exit 1
 }
 
-git clone --recursive --depth=1 --branch "$STREMIO_TAG" \
-  https://github.com/Stremio/stremio-linux-shell.git /stremio
+git init /stremio
+git -C /stremio remote add origin https://github.com/Stremio/stremio-linux-shell.git
+git -C /stremio fetch --depth=1 origin "$STREMIO_COMMIT"
+git -C /stremio checkout --detach FETCH_HEAD
+git -C /stremio submodule update --init --recursive --depth=1
+[[ "$(git -C /stremio rev-parse HEAD)" == "$STREMIO_COMMIT" ]] || {
+  echo "Stremio checkout does not match the resolved commit" >&2
+  exit 1
+}
 cd /stremio
+VIDEO_IMPL=/stremio/src/app/video/imp.rs
+grep -Fq 'init.set_property("vo", "libmpv")?;' "$VIDEO_IMPL" || {
+  echo "Pinned Stremio video initializer changed; refusing an unreviewed hwdec patch" >&2
+  exit 1
+}
+sed -i '/init\.set_property("vo", "libmpv")?;/a\
+            init.set_property("hwdec", "v4l2request-copy")?;\
+            init.set_property("hwdec-codecs", "all")?;' "$VIDEO_IMPL"
+[[ "$(grep -Fc 'init.set_property("hwdec", "v4l2request-copy")?;' "$VIDEO_IMPL")" -eq 1 ]] || {
+  echo "Stremio hwdec policy was not applied exactly once" >&2
+  exit 1
+}
+[[ "$(grep -Fc 'init.set_property("hwdec-codecs", "all")?;' "$VIDEO_IMPL")" -eq 1 ]] || {
+  echo "Stremio hwdec codec policy was not applied exactly once" >&2
+  exit 1
+}
 cargo build --release --locked
 STREMIO_BIN=/stremio/target/release/stremio-linux-shell
 [[ -x "$STREMIO_BIN" ]] || {
@@ -86,6 +119,14 @@ STREMIO_BIN=/stremio/target/release/stremio-linux-shell
 }
 [[ -f /stremio/data/server.js ]] || {
   echo "Pinned Stremio source does not contain data/server.js" >&2
+  exit 1
+}
+[[ -s /stremio/data/server.js ]] || {
+  echo "Pinned Stremio data/server.js is empty" >&2
+  exit 1
+}
+grep -aFq 'v4l2request-copy' "$STREMIO_BIN" || {
+  echo "Built Stremio binary does not contain the mandatory hwdec policy" >&2
   exit 1
 }
 
@@ -193,6 +234,7 @@ export SERVER_PATH=/opt/stremio/server.js
 export GDK_BACKEND=wayland,x11
 export MOZ_ENABLE_WAYLAND=1
 export LC_NUMERIC=C
+export RUST_LOG="${RUST_LOG:-warn,vd=debug}"
 mkdir -p "$HOME/.local/state/opi"
 exec /opt/stremio/stremio "$@" \
   2> >(tee -a "$HOME/.local/state/opi/stremio.log" >&2)

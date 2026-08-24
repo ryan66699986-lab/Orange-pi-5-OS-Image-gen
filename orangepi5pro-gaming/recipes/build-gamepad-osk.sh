@@ -15,9 +15,11 @@ gcc --version
 go build -trimpath -ldflags='-s -w' -o gamepad-osk .
 [[ -x gamepad-osk ]] || { echo "gamepad-osk build did not produce an executable" >&2; exit 1; }
 install -Dm755 gamepad-osk /out/rootfs/usr/local/bin/gamepad-osk
-[[ -f config.example ]] && install -Dm644 config.example /out/rootfs/usr/share/gamepad-osk/config || true
+[[ -f config.example ]] || { echo "Pinned gamepad-osk config.example is missing" >&2; exit 1; }
+install -Dm644 config.example /out/rootfs/usr/share/gamepad-osk/config
 [[ -f gamepad-osk.service ]] && install -Dm644 gamepad-osk.service /out/rootfs/usr/lib/systemd/user/gamepad-osk.service || true
-[[ -f gamepad-osk.udev ]] && install -Dm644 gamepad-osk.udev /out/rootfs/usr/lib/udev/rules.d/80-gamepad-osk.rules || true
+[[ -f gamepad-osk.udev ]] || { echo "Pinned gamepad-osk udev rules are missing" >&2; exit 1; }
+install -Dm644 gamepad-osk.udev /out/rootfs/usr/lib/udev/rules.d/80-gamepad-osk.rules
 DESC="$(file -b /out/rootfs/usr/local/bin/gamepad-osk)"
 grep -Eqi 'ELF .*ARM aarch64|ELF .*aarch64' <<<"$DESC" || { echo "gamepad-osk is not AArch64: $DESC" >&2; exit 1; }
 mkdir -p /out/rootfs/usr/local/share/fonts

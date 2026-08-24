@@ -17,7 +17,7 @@ cmake -S /src -B /src/build -G Ninja \
   -DPORTABLE_INSTALL=OFF \
   -DUPDATER=OFF -DAPPIMAGE_UPDATER=OFF
 cmake --build /src/build --parallel "$JOBS"
-DESTDIR=/out/rootfs cmake --install /src/build || true
+DESTDIR=/out/rootfs cmake --install /src/build
 if ! find /out/rootfs/usr/local -type f \( -name RMG -o -name rmg \) -perm -u+x -print -quit 2>/dev/null | grep -q .; then
   BIN="$(find /src/build -type f \( -name RMG -o -name rmg \) -perm -u+x -print -quit)"
   [[ -n "$BIN" ]] || { echo "RMG frontend executable not found after build" >&2; exit 1; }

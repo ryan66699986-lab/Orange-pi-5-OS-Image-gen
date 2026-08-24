@@ -14,7 +14,7 @@ cmake -S /src -B /src/build -G Ninja \
   -DCMAKE_INSTALL_PREFIX=/usr/local
 cmake --build /src/build --parallel "$JOBS"
 mkdir -p /out/rootfs/usr/local/bin /out/rootfs/usr/local/share/flycast
-DESTDIR=/out/rootfs cmake --install /src/build || true
+DESTDIR=/out/rootfs cmake --install /src/build
 if ! find /out/rootfs/usr/local -type f -name flycast -perm -u+x -print -quit 2>/dev/null | grep -q .; then
   BIN="$(find /src/build -type f -name flycast -perm -u+x -print -quit)"
   [[ -n "$BIN" ]] || { echo "Flycast executable not found after build" >&2; exit 1; }
