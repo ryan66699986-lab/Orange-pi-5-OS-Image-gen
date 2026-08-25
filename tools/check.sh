@@ -100,6 +100,34 @@ if checked < 40:
 print(f'Generated payload checks: PASS ({checked} files)')
 PY
 
+# Validate shell programs embedded as single-quoted `bash -ceu` container
+# payloads. Outer-script `bash -n` cannot see syntax errors inside the string.
+python3 - "$PROFILE" <<'PY'
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+profile = Path(sys.argv[1])
+pattern = re.compile(r"bash -ceu '\n(.*?)\n'\)\"", re.DOTALL)
+checked = 0
+for source in sorted((profile / "stages").glob("*.sh")):
+    text = source.read_text(encoding="utf-8")
+    for match in pattern.finditer(text):
+        result = subprocess.run(
+            ["bash", "-n"], input=match.group(1), text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        if result.returncode:
+            raise SystemExit(
+                f"{source}: embedded container shell payload:\n{result.stderr}"
+            )
+        checked += 1
+if checked < 1:
+    raise SystemExit("No embedded container shell payloads were validated")
+print(f"Embedded container shell checks: PASS ({checked} payloads)")
+PY
+
 # Shell syntax does not validate embedded Python heredocs. Compile every
 # literal PY payload in customization fragments, recipes and stages so a
 # launch-time helper cannot hide a Python syntax failure until the device boots.
@@ -207,7 +235,16 @@ grep -Fq 'REGDOMAIN=GB' "$PROFILE/rootfs/customize.d/60-performance-services.sh.
 grep -Fq '"${distro_id}:${distro_codename}-security"' "$PROFILE/rootfs/customize.d/60-performance-services.sh.inc"
 grep -Fq 'brave-browser-apt-release.s3.brave.com/brave-browser.sources' "$PROFILE/stages/17-browser-preflight.sh"
 grep -Fq 'https://packages.mozilla.org/apt' "$PROFILE/stages/17-browser-preflight.sh"
-grep -Fq 'D16166072CACDF2C9429CBF11BF41E37D039F691' "$PROFILE/stages/17-browser-preflight.sh"
+for fpr in DBF1A116C220B8C7164F98230686B78420038257 47D32A74E9A9E013A4B4926C68D513D36A73CD96 B2A3DCA350E67256740DF904DE4EC67BE4B0DCA0; do
+  grep -Fq "$fpr" "$PROFILE/stages/17-browser-preflight.sh"
+  grep -Fq "$fpr" "$PROFILE/rootfs/customize.d/00-base-user-input.sh.inc"
+done
+! grep -Fq 'D16166072CACDF2C9429CBF11BF41E37D039F691' "$PROFILE/stages/17-browser-preflight.sh" "$PROFILE/rootfs/customize.d/00-base-user-input.sh.inc" "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq 'actual_brave_fingerprints' "$PROFILE/stages/17-browser-preflight.sh"
+grep -Fq 'verify_brave_release_keyring()' "$PROFILE/rootfs/customize.d/00-base-user-input.sh.inc"
+grep -Fq 'verify_brave_release_keyring /usr/share/keyrings/brave-browser-archive-keyring.gpg' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq 'Brave repository URI mismatch' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq 'Brave repository keyring binding mismatch' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
 grep -Fq '35BAA0B33E9EB396F59CA838C0BA5CE6DC6315A3' "$PROFILE/stages/17-browser-preflight.sh"
 grep -Fq 'x-scheme-handler/https=brave-browser.desktop' "$PROFILE/rootfs/customize.d/40-desktop-storage.sh.inc"
 grep -Fq 'udiskie --automount --no-notify' "$PROFILE/rootfs/customize.d/30-controller-session.sh.inc"
@@ -257,7 +294,7 @@ for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
   grep -Fq "$unit" "$PROFILE/stages/51-offline-image-qa.sh"
 done
 grep -Fq 'branches: [main]' "$ROOT/.github/workflows/ci.yml"
-grep -qx '3.18' "$ROOT/VERSION"
+grep -qx '3.19' "$ROOT/VERSION"
 ! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/stages/00-common.sh"
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/recipes/arm64-common.sh"
