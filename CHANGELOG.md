@@ -1,6 +1,17 @@
 # Changelog
 
-## V3.17 — current development generation
+## V3.18 — current development generation
+
+- Audited all 48,355 lines of the completed V3.16 log. The build compiled Snes9x, native Stremio, PPSSPP, ES-DE, gamepad-osk, Moonlight and the remaining emulators, then completed the Armbian kernel/rootfs build and reached target customization.
+- Fixed the terminal target-root linkage failure by explicitly installing Moonlight's omitted `libsdl2-ttf-2.0-0` and `libqt6quickcontrols2-6` runtime packages.
+- Added both packages to the base runtime manifest and Moonlight artifact manifest so the early ARM64 package preflight and artifact merge independently retain them.
+- Repaired generic ELF runtime-package collection for merged-`/usr` layouts by retrying dpkg ownership lookup with each library's canonical path.
+- Added package, resolved-link and offline-file regression gates for `libSDL2_ttf-2.0.so.0` and `libQt6QuickControls2.so.6`.
+- Retained all V3.17 system decisions: native Stremio and mandatory hardware decoding, official Brave/Firefox, display-aware Moonlight, any-controller Linux input, UK defaults, Btrfs-safe eventual NVMe root and read-only NVMe policy during image validation.
+
+V3.18 is the next test generation and is not a release declaration. A successful fresh build plus real Orange Pi hardware validation are still required.
+
+## V3.17
 
 - Kept native Stremio after a renewed Stremio-versus-Lumera evaluation. Lumera remains an Android/Bionic Media3 application and would add an Android container plus a second unproven RK3588 codec path; Stremio remains directly auditable against the required Linux V4L2 Request FFmpeg/libmpv stack.
 - Replaced Epiphany with official ARM64 Brave and Firefox packages. The builder validates both repositories, signing-key fingerprints, package architecture and installed commands before the long native build sequence; Brave is the default and both browsers have ES-DE entries.
