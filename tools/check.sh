@@ -339,4 +339,58 @@ bash -n "$tmpdir/opi-nvme-check"
 grep -Fq 'nvme smart-log "$dev"' "$tmpdir/opi-nvme-check"
 ! grep -Eqi '(^|[^[:alnum:]_])(mount|umount|mkfs|wipefs|fdisk|sfdisk|parted|dd)([^[:alnum:]_]|$)' "$tmpdir/opi-nvme-check"
 
+# Keep the repository handbook navigable. External URLs are curated separately;
+# this pass proves every relative Markdown file/path reference exists.
+python3 - "$ROOT" <<'PY'
+import re
+import sys
+from pathlib import Path
+from urllib.parse import unquote
+
+root = Path(sys.argv[1]).resolve()
+required = {
+    "SECURITY.md",
+    "docs/ARCHITECTURE.md",
+    "docs/BUILDING.md",
+    "docs/COMPONENTS.md",
+    "docs/DESIGN-DECISIONS.md",
+    "docs/EMULATION.md",
+    "docs/OPERATIONS.md",
+    "docs/REFERENCES.md",
+    "docs/RELEASE-PROCESS.md",
+    "docs/REQUIREMENTS.md",
+    "docs/STORAGE.md",
+    "docs/TROUBLESHOOTING.md",
+    "docs/VALIDATION.md",
+    "docs/VALIDATION-RECORD-TEMPLATE.md",
+}
+missing_required = sorted(path for path in required if not (root / path).is_file())
+if missing_required:
+    raise SystemExit("Missing required handbook files: " + ", ".join(missing_required))
+
+link_re = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+failures = []
+checked = 0
+for source in sorted(root.rglob("*.md")):
+    if ".git" in source.parts:
+        continue
+    text = source.read_text(encoding="utf-8")
+    for raw in link_re.findall(text):
+        target = raw.strip().split()[0].strip("<>")
+        if not target or target.startswith(("http://", "https://", "mailto:", "#")):
+            continue
+        path = unquote(target.split("#", 1)[0].split("?", 1)[0])
+        if not path:
+            continue
+        resolved = (source.parent / path).resolve()
+        checked += 1
+        if root not in resolved.parents and resolved != root:
+            failures.append(f"{source.relative_to(root)}: escapes repository: {target}")
+        elif not resolved.exists():
+            failures.append(f"{source.relative_to(root)}: missing target: {target}")
+if failures:
+    raise SystemExit("Markdown link errors:\n" + "\n".join(failures))
+print(f"Documentation link checks: PASS ({checked} relative links)")
+PY
+
 echo "Static repository checks: PASS"
