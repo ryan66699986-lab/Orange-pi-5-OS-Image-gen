@@ -1,6 +1,17 @@
 # Changelog
 
-## V3.19 — current development generation
+## V3.20 — current development generation
+
+- Audited all 48,386 lines of the V3.19 log. The official Brave/Firefox correction passed, all ten native ARM64 builds completed, Azahar passed all 64 tests, Armbian built the kernel/root filesystem, and the target installed V3.18's two missing Moonlight runtime packages before reaching the final rootfs gate.
+- Fixed the terminal false-negative `gamepad-osk` gate. The pinned upstream configuration already enabled the controller mouse as `enabled = true # ...`; the old validator incorrectly required `true` to be the final non-whitespace token.
+- Added an idempotent target-root normalizer that enables controller mouse input if the upstream default changes, adds the `[mouse]` section if it is absent, and prevents the final result from depending on comments in the upstream example.
+- Require exactly one `[mouse]` section and accept legal inline comments in both the target-root gate and the completed-image offline QA.
+- Added executable regression fixtures for an existing disabled setting, a missing section and the exact inline-comment syntax that stopped V3.19.
+- Retained native Stremio with mandatory V4L2 Request hardware-decoding gates, controller-first ES-DE/Gamescope/Labwc, display-aware Moonlight, official Brave/Firefox, fresh workspaces and the read-only NVMe policy during image testing.
+
+V3.20 is the next test generation and is not a release declaration. A successful fresh build plus real Orange Pi hardware validation are still required.
+
+## V3.19
 
 - Audited the complete 98-line V3.18 log. All host, ARM64 execution, source-resolution, package, Stremio ABI and distro-command preflights passed before the browser gate stopped on Brave key validation; no compilation began and no image was produced.
 - Corrected a wrong-key-class assertion: `D16166072CACDF2C9429CBF11BF41E37D039F691` verifies Brave's installer script, while the release APT keyring currently contains primary fingerprints `DBF1A116C220B8C7164F98230686B78420038257`, `47D32A74E9A9E013A4B4926C68D513D36A73CD96` and `B2A3DCA350E67256740DF904DE4EC67BE4B0DCA0`.
