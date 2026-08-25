@@ -11,7 +11,8 @@ docker run --rm -i --privileged --platform linux/amd64 -v "$SOURCE_IMAGE:/image.
   grep -qx 'videodec=1' "$R/home/ryan/.config/Moonlight Game Streaming Project/Moonlight.conf" || { echo "Moonlight force-hardware policy missing" >&2; exit 1; }
   for key in width height fps; do grep -Eq "^${key}=[1-9][0-9]*$" "$R/home/ryan/.config/Moonlight Game Streaming Project/Moonlight.conf" || { echo "Moonlight ${key} safe default invalid" >&2; exit 1; }; done
   grep -Eq '^[[:space:]]*toggle_combo[[:space:]]*=[[:space:]]*guide\+start([[:space:]]*)$' "$R/etc/gamepad-osk/config" || { echo "Guide+Start OSK chord missing" >&2; exit 1; }
-  awk 'BEGIN{ok=0} /^\[mouse\]/{mouse=1;next} /^\[/{mouse=0} mouse && /^[[:space:]]*enabled[[:space:]]*=[[:space:]]*true[[:space:]]*$/{ok=1} END{exit !ok}' "$R/etc/gamepad-osk/config" || { echo "Controller mouse is not enabled" >&2; exit 1; }
+  [[ "$(grep -Ec '^[[:space:]]*\[mouse\][[:space:]]*$' "$R/etc/gamepad-osk/config")" -eq 1 ]] || { echo "Final config does not contain exactly one [mouse] section" >&2; exit 1; }
+  awk 'BEGIN{ok=0} /^[[:space:]]*\[mouse\][[:space:]]*$/{mouse=1;next} /^[[:space:]]*\[/{mouse=0} mouse && /^[[:space:]]*enabled[[:space:]]*=[[:space:]]*true([[:space:]]*#.*)?[[:space:]]*$/{ok=1} END{exit !ok}' "$R/etc/gamepad-osk/config" || { echo "Controller mouse is not enabled" >&2; exit 1; }
   [[ "$(cat "$R/etc/opi/session-mode")" == gaming ]] || { echo "Final image not set to Gaming Mode" >&2; exit 1; }
   for arg in cma=512M consoleblank=0 zswap.enabled=0; do grep -Eq "^extraargs=.*${arg}" "$R/boot/armbianEnv.txt" || { echo "Final image is missing ${arg}" >&2; exit 1; }; done
   grep -q '^ryan:' "$R/etc/passwd" || { echo "ryan user missing" >&2; exit 1; }
