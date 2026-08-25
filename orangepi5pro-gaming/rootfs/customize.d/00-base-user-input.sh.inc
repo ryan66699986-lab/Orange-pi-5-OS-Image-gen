@@ -4,6 +4,24 @@ export DEBIAN_FRONTEND=noninteractive
 
 log(){ printf '\n[OPI] %s\n' "$*"; }
 
+verify_brave_release_keyring() {
+    local keyring="$1" expected actual
+    expected="$(printf '%s\n' \
+        DBF1A116C220B8C7164F98230686B78420038257 \
+        47D32A74E9A9E013A4B4926C68D513D36A73CD96 \
+        B2A3DCA350E67256740DF904DE4EC67BE4B0DCA0 | sort)"
+    actual="$(
+        gpg --batch --show-keys --with-colons "$keyring" 2>/dev/null |
+            awk -F: '$1 == "pub" { primary=1; next } primary && $1 == "fpr" { print toupper($10); primary=0 }' |
+            sort -u
+    )"
+    [[ "$actual" == "$expected" ]] || {
+        printf 'Official Brave APT keyring primary-fingerprint mismatch. Found:\n%s\n' \
+            "${actual:-<none>}" >&2
+        return 1
+    }
+}
+
 [[ -d /tmp/overlay ]] || { echo "Armbian overlay missing" >&2; exit 1; }
 install -d -m0755 /opt/opi-build-meta /opt/opi /usr/local/libexec/opi-emulators
 
@@ -19,9 +37,7 @@ apt-get install -y --no-install-recommends ca-certificates curl gnupg
 install -d -m0755 /usr/share/keyrings /etc/apt/keyrings /etc/apt/sources.list.d /etc/apt/preferences.d
 curl --retry 3 --retry-delay 2 -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
     https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
-gpg --batch --show-keys --with-colons /usr/share/keyrings/brave-browser-archive-keyring.gpg 2>/dev/null \
-    | grep -Fqi 'fpr:::::::::D16166072CACDF2C9429CBF11BF41E37D039F691:' \
-    || { echo "Official Brave signing-key fingerprint mismatch" >&2; exit 1; }
+verify_brave_release_keyring /usr/share/keyrings/brave-browser-archive-keyring.gpg
 curl --retry 3 --retry-delay 2 -fsSLo /etc/apt/sources.list.d/brave-browser-release.sources \
     https://brave-browser-apt-release.s3.brave.com/brave-browser.sources
 curl --retry 3 --retry-delay 2 -fsSLo /etc/apt/keyrings/packages.mozilla.org.asc \
