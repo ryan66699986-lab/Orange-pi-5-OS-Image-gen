@@ -138,6 +138,8 @@ mkdir -p /out/rootfs/usr/local/share/moonlight
 assert_aarch64_tree /out/rootfs/opt/opi/apps/moonlight
 collect_runtime_packages /out/rootfs/opt/opi/apps/moonlight /out/runtime-packages.txt
 cat >> /out/runtime-packages.txt <<'RUNTIME'
+libsdl2-ttf-2.0-0
+libqt6quickcontrols2-6
 qml6-module-qtquick-controls
 qml6-module-qtquick-templates
 qml6-module-qtquick-layouts

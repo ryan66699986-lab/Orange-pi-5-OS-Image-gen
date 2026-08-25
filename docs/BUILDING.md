@@ -19,6 +19,6 @@ Every attempt uses a fresh versioned workspace under the builder user's home dir
 
 Generated images and diagnostic bundles are written outside the repository under `~/opi5pro-images`.
 
-V3.17 retains Snes9x first among native artifacts so the GCC 15/glslang compatibility gate is exercised before the long Stremio and emulator build sequence. It validates generated launchers from artifact recipes and requires their destination directories before redirection. The official Brave and Firefox ARM64 repositories are installed in an isolated preflight before native compilation starts. Do not reuse any earlier version's Armbian workspace or artifacts.
+V3.18 retains Snes9x first among native artifacts so the GCC 15/glslang compatibility gate is exercised before the long Stremio and emulator build sequence. It validates generated launchers from artifact recipes and requires their destination directories before redirection. The official Brave and Firefox ARM64 repositories are installed in an isolated preflight before native compilation starts. Moonlight's SDL2_ttf and Qt Quick Controls runtime packages are explicit early package-preflight inputs, not recommendations or inferred-only dependencies. Do not reuse any earlier version's Armbian workspace or artifacts.
 
 The builder does not touch the Orange Pi's installed NVMe. Storage migration is a post-validation, on-device operation and is outside image generation.

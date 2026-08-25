@@ -46,6 +46,8 @@ libgles2
 libglib2.0-bin
 libhidapi-hidraw0
 libhidapi-libusb0
+libqt6quickcontrols2-6
+libsdl2-ttf-2.0-0
 libspa-0.2-bluetooth
 libva2
 libvulkan1

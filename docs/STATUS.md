@@ -1,8 +1,12 @@
 # Project status
 
-## Current generation: V3.17
+## Current generation: V3.18
 
-V3.17 is the active build under test.
+V3.18 is the active build under test.
+
+The completed V3.16 run compiled all native artifacts, built the Armbian kernel/root filesystem and entered final target customization. It then correctly stopped when Moonlight's `ldd` gate found two absent runtime libraries: `libSDL2_ttf-2.0.so.0` and `libQt6QuickControls2.so.6`. Both development packages had been present in the isolated Moonlight build container, so compilation and build-container linkage passed, but the corresponding runtime packages were not copied into the target package manifest. V3.17 inherited that omission before the V3.16 log arrived.
+
+V3.18 explicitly includes `libsdl2-ttf-2.0-0` and `libqt6quickcontrols2-6`, records them in Moonlight's runtime manifest, and repairs generic dependency collection for merged-`/usr` systems where `ldd` and the dpkg database can use different `/lib` and `/usr/lib` spellings. Static, target-root and offline-image gates now require the packages, resolved links and library files.
 
 V3.15 proved the Snes9x GCC 15 compatibility repair and completed native builds of Snes9x, Stremio, PPSSPP, ES-DE and gamepad-osk. It also compiled and linked Moonlight 6.1.0 against the dedicated V4L2 Request FFmpeg libraries, passed the binary RUNPATH, dependency and decoder-evidence gates, then stopped while creating its launcher because `/out/rootfs/usr/local/bin` had not been created. V3.16 creates that directory explicitly and validates the installed launcher immediately.
 
@@ -31,4 +35,4 @@ A successful host build and offline image QA are necessary but not sufficient. H
 - a real Moonlight stream at the display mode detected at launch, using the hardware-accelerated FFmpeg decoder; a 4K display must therefore prove a 4K stream;
 - memory/thermal behavior on the 4 GB board.
 
-Until those pass, V3.17 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.
+Until those pass, V3.18 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.
