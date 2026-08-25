@@ -145,6 +145,12 @@ done
 for pkg in btrfs-progs dosfstools e2fsprogs exfatprogs ntfs-3g unattended-upgrades wireless-regdb iw wlr-randr edid-decode locales; do
   grep -qx "$pkg" "$PROFILE/packages/base.txt"
 done
+for pkg in libsdl2-ttf-2.0-0 libqt6quickcontrols2-6; do
+  grep -qx "$pkg" "$PROFILE/packages/base.txt"
+  grep -qx "$pkg" "$PROFILE/recipes/build-moonlight.sh"
+done
+grep -Fq 'canonical="$(readlink -f "$lib"' "$PROFILE/recipes/arm64-common.sh"
+grep -Fq 'dpkg-query -S "$canonical"' "$PROFILE/recipes/arm64-common.sh"
 grep -q '^nvme-cli$' "$PROFILE/packages/base.txt"
 grep -q '^libspa-0.2-bluetooth$' "$PROFILE/packages/base.txt"
 grep -q '^pipewire-pulse$' "$PROFILE/packages/base.txt"
@@ -223,6 +229,11 @@ grep -Fq 'RPATH|RUNPATH' "$PROFILE/recipes/build-moonlight.sh"
 grep -Fq 'install -d -m0755 /out/rootfs/usr/local/bin' "$PROFILE/recipes/build-moonlight.sh"
 grep -Fq 'bash -n /out/rootfs/usr/local/bin/moonlight-qt' "$PROFILE/recipes/build-moonlight.sh"
 grep -Fq 'Moonlight launcher was not packaged as an executable' "$PROFILE/recipes/build-moonlight.sh"
+grep -Fq 'Mandatory Moonlight runtime package missing' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq 'Moonlight SDL2_ttf runtime link is missing' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq 'Moonlight Qt Quick Controls runtime link is missing' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq '/usr/lib/aarch64-linux-gnu/libSDL2_ttf-2.0.so.0' "$PROFILE/stages/51-offline-image-qa.sh"
+grep -Fq '/usr/lib/aarch64-linux-gnu/libQt6QuickControls2.so.6' "$PROFILE/stages/51-offline-image-qa.sh"
 grep -Fq 'Built Moonlight commit differs from source lock' "$PROFILE/stages/31-native-artifacts.sh"
 for component in PPSSPP RMG Flycast melonDS Azahar; do
   grep -Fq "Built ${component} commit differs from source lock" "$PROFILE/stages/31-native-artifacts.sh"
@@ -246,7 +257,7 @@ for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
   grep -Fq "$unit" "$PROFILE/stages/51-offline-image-qa.sh"
 done
 grep -Fq 'branches: [main]' "$ROOT/.github/workflows/ci.yml"
-grep -qx '3.17' "$ROOT/VERSION"
+grep -qx '3.18' "$ROOT/VERSION"
 ! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/stages/00-common.sh"
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/recipes/arm64-common.sh"
