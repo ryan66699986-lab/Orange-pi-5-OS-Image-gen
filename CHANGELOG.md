@@ -1,6 +1,17 @@
 # Changelog
 
-## V3.18 — current development generation
+## V3.19 — current development generation
+
+- Audited the complete 98-line V3.18 log. All host, ARM64 execution, source-resolution, package, Stremio ABI and distro-command preflights passed before the browser gate stopped on Brave key validation; no compilation began and no image was produced.
+- Corrected a wrong-key-class assertion: `D16166072CACDF2C9429CBF11BF41E37D039F691` verifies Brave's installer script, while the release APT keyring currently contains primary fingerprints `DBF1A116C220B8C7164F98230686B78420038257`, `47D32A74E9A9E013A4B4926C68D513D36A73CD96` and `B2A3DCA350E67256740DF904DE4EC67BE4B0DCA0`.
+- Require an exact, sorted primary-key set in both the isolated early preflight and target root. This remains fail-closed on an unreviewed key rotation while tolerating certified subkeys.
+- Added final target-root assertions that the Brave source remains bound to the official release URI and audited keyring path. The subsequent APT metadata verification and native ARM64 package installation remain mandatory.
+- Extended repository validation to syntax-check single-quoted shell programs executed inside containers, which outer-script `bash -n` cannot inspect.
+- Retained V3.18's explicit Moonlight SDL2_ttf/Qt Quick Controls dependencies and every V3.17 system requirement.
+
+V3.19 is the next test generation and is not a release declaration. A successful fresh build plus real Orange Pi hardware validation are still required.
+
+## V3.18
 
 - Audited all 48,355 lines of the completed V3.16 log. The build compiled Snes9x, native Stremio, PPSSPP, ES-DE, gamepad-osk, Moonlight and the remaining emulators, then completed the Armbian kernel/rootfs build and reached target customization.
 - Fixed the terminal target-root linkage failure by explicitly installing Moonlight's omitted `libsdl2-ttf-2.0-0` and `libqt6quickcontrols2-6` runtime packages.
