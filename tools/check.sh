@@ -226,6 +226,7 @@ grep -Fq 'wlr-randr --json' "$PROFILE/rootfs/customize.d/20-media-steam.sh.inc"
 grep -Fq 'HDR Static Metadata Data Block' "$PROFILE/rootfs/customize.d/20-media-steam.sh.inc"
 grep -Fq '/usr/local/bin/opi-moonlight-display-auto' "$PROFILE/recipes/build-moonlight.sh"
 grep -Fq 'guide+start' "$PROFILE/rootfs/customize.d/30-controller-session.sh.inc"
+grep -Fq 'ensure_gamepad_mouse_enabled()' "$PROFILE/rootfs/customize.d/30-controller-session.sh.inc"
 grep -Fq 'controller mouse is not enabled' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
 grep -Fq 'btrfs inspect-internal map-swapfile' "$PROFILE/rootfs/customize.d/60-performance-services.sh.inc"
 grep -Fq 'Steam-Experimental.sh' "$PROFILE/rootfs/customize.d/60-performance-services.sh.inc"
@@ -294,11 +295,39 @@ for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
   grep -Fq "$unit" "$PROFILE/stages/51-offline-image-qa.sh"
 done
 grep -Fq 'branches: [main]' "$ROOT/.github/workflows/ci.yml"
-grep -qx '3.19' "$ROOT/VERSION"
+grep -qx '3.20' "$ROOT/VERSION"
 ! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/stages/00-common.sh"
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/recipes/arm64-common.sh"
 ! grep -ERn --include='*.sh' '^[[:space:]]*git[[:space:]]+(clone|fetch|ls-remote)' "$PROFILE/stages" "$PROFILE/recipes"
+
+# Exercise the exact gamepad mouse normalizer against both a changed upstream
+# default and a config with no mouse section. Also prove the final validator
+# accepts the pinned example's legal inline-comment form.
+source <(sed -n '/^ensure_gamepad_mouse_enabled()/,/^}/p' \
+  "$PROFILE/rootfs/customize.d/30-controller-session.sh.inc")
+cat > "$tmpdir/gamepad-mouse-existing.ini" <<'EOF'
+[gamepad]
+toggle_combo = guide+start
+
+[mouse]
+enabled = false             # simulate a changed upstream default
+sensitivity = 10
+EOF
+ensure_gamepad_mouse_enabled "$tmpdir/gamepad-mouse-existing.ini"
+grep -qx 'enabled = true' "$tmpdir/gamepad-mouse-existing.ini"
+[[ "$(grep -Ec '^[[:space:]]*\[mouse\][[:space:]]*$' "$tmpdir/gamepad-mouse-existing.ini")" -eq 1 ]]
+
+cat > "$tmpdir/gamepad-mouse-missing.ini" <<'EOF'
+[gamepad]
+toggle_combo = guide+start
+EOF
+ensure_gamepad_mouse_enabled "$tmpdir/gamepad-mouse-missing.ini"
+grep -qx 'enabled = true' "$tmpdir/gamepad-mouse-missing.ini"
+[[ "$(grep -Ec '^[[:space:]]*\[mouse\][[:space:]]*$' "$tmpdir/gamepad-mouse-missing.ini")" -eq 1 ]]
+sed -i 's/^enabled = true$/enabled = true  # legal inline comment/' "$tmpdir/gamepad-mouse-missing.ini"
+awk 'BEGIN{ok=0} /^[[:space:]]*\[mouse\][[:space:]]*$/{mouse=1;next} /^[[:space:]]*\[/{mouse=0} mouse && /^[[:space:]]*enabled[[:space:]]*=[[:space:]]*true([[:space:]]*#.*)?[[:space:]]*$/{ok=1} END{exit !ok}' "$tmpdir/gamepad-mouse-missing.ini"
+echo "gamepad-osk config mutation/validation checks: PASS"
 
 # Until image finalization, the repository may inventory/SMART-check NVMe but
 # must never partition, format, mount, migrate to, or write the installed NVMe.
