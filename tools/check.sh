@@ -24,10 +24,12 @@ awk '/<<'\''OFFLINE_QA'\''/{copy=1; next} copy && /^OFFLINE_QA$/{exit} copy{prin
 bash -n "$tmpdir/offline-image-qa.sh"
 
 # Validate the programs and structured configuration embedded inside the
-# customization heredocs. `bash -n customize-image.sh` validates only the
-# outer generator; without this pass, a generated runtime helper can remain
-# syntactically broken until the final rootfs gate hours later.
-python3 - "$PROFILE/rootfs/customize.d" <<'PY'
+# customization and artifact-recipe heredocs. `bash -n` validates only the
+# outer generators; without this pass, a generated runtime helper can remain
+# syntactically broken until an artifact or the final rootfs gate hours later.
+# For recipe writes into /out/rootfs, also prove the literal parent directory
+# is explicitly created before redirection: shell redirection cannot create it.
+python3 - "$PROFILE" <<'PY'
 import json
 import re
 import subprocess
@@ -36,10 +38,12 @@ import tomllib
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-root = Path(sys.argv[1])
+profile = Path(sys.argv[1])
 start = re.compile(r"\bcat\s+>\s+(\"[^\"]+\"|'[^']+'|\S+)\s+<<'([^']+)'")
 checked = 0
-for source in sorted(root.glob('*.sh.inc')):
+sources = sorted((profile / 'rootfs/customize.d').glob('*.sh.inc'))
+sources += sorted((profile / 'recipes').glob('*.sh'))
+for source in sources:
     lines = source.read_text(encoding='utf-8').splitlines()
     i = 0
     while i < len(lines):
@@ -49,6 +53,18 @@ for source in sorted(root.glob('*.sh.inc')):
             continue
         target = match.group(1).strip('"\'')
         terminator = match.group(2)
+        if source.parent.name == 'recipes' and target.startswith('/out/rootfs/'):
+            parent = str(Path(target).parent)
+            prefix = '\n'.join(lines[:i])
+            explicit_parent = re.compile(
+                r'(?:install\s+-d(?:\s+-m[0-7]+)?|mkdir\s+-p)'
+                r'(?:[^\n]*\\\n)*[^\n]*' + re.escape(parent)
+            )
+            if not explicit_parent.search(prefix):
+                raise SystemExit(
+                    f'{source}: redirects to {target} before explicitly '
+                    f'creating {parent}'
+                )
         body = []
         i += 1
         while i < len(lines) and lines[i] != terminator:
@@ -153,6 +169,9 @@ grep -Fq 'FFmpeg-based %s video decoder chosen' "$PROFILE/recipes/build-moonligh
 grep -Fq 'chosenDecoder->isHardwareAccelerated()' "$PROFILE/recipes/build-moonlight.sh"
 grep -Fq 'QMAKE_RPATHDIR += /opt/opi/media/lib' "$PROFILE/recipes/build-moonlight.sh"
 grep -Fq 'RPATH|RUNPATH' "$PROFILE/recipes/build-moonlight.sh"
+grep -Fq 'install -d -m0755 /out/rootfs/usr/local/bin' "$PROFILE/recipes/build-moonlight.sh"
+grep -Fq 'bash -n /out/rootfs/usr/local/bin/moonlight-qt' "$PROFILE/recipes/build-moonlight.sh"
+grep -Fq 'Moonlight launcher was not packaged as an executable' "$PROFILE/recipes/build-moonlight.sh"
 grep -Fq 'Built Moonlight commit differs from source lock' "$PROFILE/stages/31-native-artifacts.sh"
 for component in PPSSPP RMG Flycast melonDS Azahar; do
   grep -Fq "Built ${component} commit differs from source lock" "$PROFILE/stages/31-native-artifacts.sh"
@@ -176,7 +195,7 @@ for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
   grep -Fq "$unit" "$PROFILE/stages/51-offline-image-qa.sh"
 done
 grep -Fq 'branches: [main]' "$ROOT/.github/workflows/ci.yml"
-grep -qx '3.15' "$ROOT/VERSION"
+grep -qx '3.16' "$ROOT/VERSION"
 ! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/stages/00-common.sh"
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/recipes/arm64-common.sh"

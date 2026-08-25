@@ -1,6 +1,17 @@
 # Changelog
 
-## V3.15 — current development generation
+## V3.16 — current development generation
+
+- Fixed the V3.15 Moonlight packaging stop by explicitly creating `/out/rootfs/usr/local/bin` before redirecting the launcher into it.
+- Added immediate Moonlight launcher syntax, executable-mode and target-command assertions inside the ARM64 artifact recipe.
+- Expanded generated-payload validation from rootfs customization fragments to artifact recipes. Recipe redirects into `/out/rootfs` now fail static checks unless their literal parent directory is explicitly created first.
+- Confirmed from the complete V3.15 log that Snes9x, native Stremio, PPSSPP, ES-DE and gamepad-osk completed, and that Moonlight compiled and passed its dedicated V4L2 Request FFmpeg linkage, RUNPATH and hardware-decoder evidence gates before the packaging-only failure.
+- Reviewed every V3.15 warning/error signature. Remaining warnings are upstream compiler/deprecation diagnostics or disabled optional test/dependency probes and did not conceal a failed command.
+- Retained native Stremio as a hard requirement, Moonlight 4K hardware-decode validation, EasySMX X20 coverage, HDMI plus Bluetooth audio, experimental Steam status, fresh workspaces and the read-only NVMe policy.
+
+V3.16 is the next test generation and is not a release declaration. A successful fresh build plus real Orange Pi hardware validation are still required.
+
+## V3.15
 
 - Fixed the V3.14 Snes9x 1.63 failure under Ubuntu 26.04/GCC 15 by adding the missing `<cstdint>` include to its pinned glslang `SpvBuilder.h`. The recipe validates the exact source layout, applies the patch exactly once, and compiles the affected header before starting the full build.
 - Kept native Stremio. V3.14 proved the corrected FFmpeg, mpv/libmpv and Stremio build sequence, while Lumera remains an Android/Media3 application that would require a new Android container, Android graphics stack and codec HAL on this native Ubuntu image.

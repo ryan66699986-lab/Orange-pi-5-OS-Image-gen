@@ -1,12 +1,12 @@
 # Project status
 
-## Current generation: V3.15
+## Current generation: V3.16
 
-V3.15 is the active build under test.
+V3.16 is the active build under test.
 
-V3.14 proved the complete native Stremio build repair: the pinned V4L2 Request FFmpeg, dedicated mpv/libmpv and Stremio 1.1.4 all compiled successfully. The run then exposed a GCC 15 incompatibility in Snes9x 1.63's pinned glslang header, which uses `uint32_t` without including `<cstdint>`. V3.15 applies and immediately syntax-checks the minimal header correction before the full Snes9x build.
+V3.15 proved the Snes9x GCC 15 compatibility repair and completed native builds of Snes9x, Stremio, PPSSPP, ES-DE and gamepad-osk. It also compiled and linked Moonlight 6.1.0 against the dedicated V4L2 Request FFmpeg libraries, passed the binary RUNPATH, dependency and decoder-evidence gates, then stopped while creating its launcher because `/out/rootfs/usr/local/bin` had not been created. V3.16 creates that directory explicitly and validates the installed launcher immediately.
 
-The V3.15 audit also closes previously untested requirements. Moonlight is now pinned to an immutable commit, linked to the same dedicated V4L2 Request FFmpeg libraries as Stremio, forced to hardware decoding, and configured for 3840×2160 at 60 Hz with HDR enabled. Its binary and a real 4K stream must both produce affirmative hardware-decoder evidence. The image includes H.264, HEVC Main10/HDR10, VP9 and AV1 4K probes, explicit HDMI and Bluetooth audio checks, and an EasySMX X20/XInput controller detector.
+The V3.16 static gate now inspects generated shell/config payloads from both rootfs customization fragments and ARM64 artifact recipes. For literal recipe redirects into `/out/rootfs`, it rejects a launcher unless the parent directory is explicitly initialized first. Moonlight remains pinned, forced through the project media stack, and configured for 3840×2160 at 60 Hz with HDR enabled. The 4K codec, EasySMX X20, HDMI/Bluetooth audio and read-only NVMe policies are unchanged.
 
 ## Lumera decision
 
@@ -27,4 +27,4 @@ A successful host build and offline image QA are necessary but not sufficient. H
 - a real 3840×2160 Moonlight stream using the hardware-accelerated FFmpeg decoder;
 - memory/thermal behavior on the 4 GB board.
 
-Until those pass, V3.15 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to NVMe; eMMC migration and SD removal are a later hardware transition.
+Until those pass, V3.16 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to NVMe; eMMC migration and SD removal are a later hardware transition.

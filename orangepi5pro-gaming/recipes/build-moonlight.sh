@@ -107,6 +107,7 @@ grep -aFq 'FFmpeg-based %s video decoder chosen' app/moonlight || {
 }
 
 install -Dm755 app/moonlight /out/rootfs/opt/opi/apps/moonlight/moonlight-qt
+install -d -m0755 /out/rootfs/usr/local/bin
 cat > /out/rootfs/usr/local/bin/moonlight-qt <<'WRAPPER'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -117,6 +118,16 @@ exec /opt/opi/apps/moonlight/moonlight-qt "$@" \
   2> >(tee -a "$HOME/.local/state/opi/moonlight.log" >&2)
 WRAPPER
 chmod 0755 /out/rootfs/usr/local/bin/moonlight-qt
+bash -n /out/rootfs/usr/local/bin/moonlight-qt
+[[ -x /out/rootfs/usr/local/bin/moonlight-qt ]] || {
+  echo "Moonlight launcher was not packaged as an executable" >&2
+  exit 1
+}
+grep -Fq 'exec /opt/opi/apps/moonlight/moonlight-qt "$@"' \
+  /out/rootfs/usr/local/bin/moonlight-qt || {
+  echo "Moonlight launcher does not execute the packaged application" >&2
+  exit 1
+}
 mkdir -p /out/rootfs/usr/local/share/moonlight
 [[ -f app/SDL_GameControllerDB/gamecontrollerdb.txt ]] &&
   cp -a app/SDL_GameControllerDB/gamecontrollerdb.txt \
