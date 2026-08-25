@@ -1,8 +1,10 @@
 # Project status
 
-## Current generation: V3.19
+## Current generation: V3.20
 
-V3.19 is the active build under test.
+V3.20 is the active build under test.
+
+V3.19 ran for 48,386 log lines and reached final target-root customization. It proved the V3.19 Brave-key correction, built all ten native ARM64 artifacts, passed Azahar's 64 tests, built the Armbian kernel/root filesystem and installed V3.18's previously missing Moonlight libraries in the target. It then stopped at the controller-mouse assertion even though the pinned upstream `gamepad-osk` configuration already contained `enabled = true` with an inline explanatory comment. The old `awk` expression rejected any text after `true`. V3.20 normalizes the target setting and validates both the normalized and upstream-commented forms in the target root and completed image.
 
 V3.18 stopped at its deliberately early Brave/Firefox repository preflight, before native compilation. The builder incorrectly compared Brave's downloaded release APT keyring with the `D161…F691` key used to verify Brave's separate installer script. The official release APT keyring instead contains three current primary keys. V3.19 validates that exact primary-key set in the early ARM64 container and again in the assembled target root, then relies on APT's repository-metadata signature verification and successful ARM64 package installation as the functional proof.
 
@@ -37,4 +39,4 @@ A successful host build and offline image QA are necessary but not sufficient. H
 - a real Moonlight stream at the display mode detected at launch, using the hardware-accelerated FFmpeg decoder; a 4K display must therefore prove a 4K stream;
 - memory/thermal behavior on the 4 GB board.
 
-Until those pass, V3.19 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.
+Until those pass, V3.20 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.
