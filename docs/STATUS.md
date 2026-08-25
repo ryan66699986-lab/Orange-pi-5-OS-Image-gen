@@ -1,12 +1,16 @@
 # Project status
 
-## Current generation: V3.16
+## Current generation: V3.17
 
-V3.16 is the active build under test.
+V3.17 is the active build under test.
 
 V3.15 proved the Snes9x GCC 15 compatibility repair and completed native builds of Snes9x, Stremio, PPSSPP, ES-DE and gamepad-osk. It also compiled and linked Moonlight 6.1.0 against the dedicated V4L2 Request FFmpeg libraries, passed the binary RUNPATH, dependency and decoder-evidence gates, then stopped while creating its launcher because `/out/rootfs/usr/local/bin` had not been created. V3.16 creates that directory explicitly and validates the installed launcher immediately.
 
-The V3.16 static gate now inspects generated shell/config payloads from both rootfs customization fragments and ARM64 artifact recipes. For literal recipe redirects into `/out/rootfs`, it rejects a launcher unless the parent directory is explicitly initialized first. Moonlight remains pinned, forced through the project media stack, and configured for 3840×2160 at 60 Hz with HDR enabled. The 4K codec, EasySMX X20, HDMI/Bluetooth audio and read-only NVMe policies are unchanged.
+V3.17 retains that Moonlight packaging repair and expands the early gates around the completed system specification. Official Brave and Mozilla repositories are exercised in an isolated ARM64 preflight before any long native builds. Brave is the default browser and Firefox is retained as an alternative. Moonlight remains pinned and forced through the dedicated media stack, but its stream resolution, refresh rate and HDR request are now derived from the active Wayland output and EDID at launch instead of assuming every screen is 3840×2160 HDR.
+
+The image now includes Btrfs/Ext/exFAT/NTFS/VFAT userspace support and explicit Btrfs, exFAT, NTFS3 and VFAT kernel gates. Its emergency swapfile helper recreates the swapfile with no-copy-on-write and no-compression attributes when the root filesystem is Btrfs. This makes the eventual NVMe-root migration safe without allowing the builder or current test image to touch the installed NVMe.
+
+UK locale, keyboard, timezone and Wi-Fi regulatory defaults are explicit. Security-only unattended upgrades are enabled without automatic reboot. Any Linux-input controller is accepted; Guide+Start toggles the gamepad OSK. Steam is always visible in ES-DE as experimental and bootstraps on demand. ES-DE also exposes Brave, Firefox, network, audio, desktop, restart, reboot and power-off entries.
 
 ## Lumera decision
 
@@ -24,7 +28,7 @@ A successful host build and offline image QA are necessary but not sufficient. H
 - HDMI/DisplayPort and Bluetooth audio paths;
 - EasySMX X20 operation over wired USB, 2.4 GHz receiver and Bluetooth, including axes/buttons and force feedback where the transport exposes it;
 - real Stremio H.264, HEVC 8-bit, HEVC Main10/HDR10, VP9 and AV1 V4L2 Request hardware decode, including 4K visible playback and evidence from the Stremio process itself;
-- a real 3840×2160 Moonlight stream using the hardware-accelerated FFmpeg decoder;
+- a real Moonlight stream at the display mode detected at launch, using the hardware-accelerated FFmpeg decoder; a 4K display must therefore prove a 4K stream;
 - memory/thermal behavior on the 4 GB board.
 
-Until those pass, V3.16 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to NVMe; eMMC migration and SD removal are a later hardware transition.
+Until those pass, V3.17 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.

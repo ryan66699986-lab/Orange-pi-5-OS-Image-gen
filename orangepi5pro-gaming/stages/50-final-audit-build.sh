@@ -4,6 +4,7 @@ bash -n "$USERPATCHES_DIR/customize-image.sh" || die "customize-image.sh contain
 grep -qx 'CONFIG_INPUT_UINPUT=m' "$USERPATCHES_DIR/linux-rockchip64-edge.config" || die "uinput kernel config was lost"
 grep -qx 'CONFIG_ROCKCHIP_DW_HDMI_QP=y' "$USERPATCHES_DIR/linux-rockchip64-edge.config" || die "RK3588 HDMI-QP kernel config was lost"
 grep -qx 'CONFIG_DRM_DW_HDMI_QP_CEC=y' "$USERPATCHES_DIR/linux-rockchip64-edge.config" || die "HDMI CEC kernel config was lost"
+grep -qx 'CONFIG_BTRFS_FS=y' "$USERPATCHES_DIR/linux-rockchip64-edge.config" || die "Btrfs root filesystem support was lost"
 good "Builder/customizer/kernel-config static audit passed"
 say "Starting Armbian Docker build"
 cd "$ARMBIAN" || die "Unable to enter the fresh Armbian workspace"

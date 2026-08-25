@@ -100,18 +100,51 @@ if checked < 40:
 print(f'Generated payload checks: PASS ({checked} files)')
 PY
 
+# Shell syntax does not validate embedded Python heredocs. Compile every
+# literal PY payload in customization fragments, recipes and stages so a
+# launch-time helper cannot hide a Python syntax failure until the device boots.
+python3 - "$PROFILE" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+profile = Path(sys.argv[1])
+sources = list((profile / "rootfs/customize.d").glob("*.sh.inc"))
+sources += list((profile / "recipes").glob("*.sh"))
+sources += list((profile / "stages").glob("*.sh"))
+pattern = re.compile(r"<<'PY'\n(.*?)\nPY$", re.MULTILINE | re.DOTALL)
+checked = 0
+for source in sorted(sources):
+    text = source.read_text(encoding="utf-8")
+    for match in pattern.finditer(text):
+        compile(match.group(1), f"{source}:PY-heredoc-{checked + 1}", "exec")
+        checked += 1
+if checked < 3:
+    raise SystemExit(f"Only {checked} embedded Python payloads were compiled")
+print(f"Embedded Python checks: PASS ({checked} payloads)")
+PY
+
 grep -q '^CONFIG_VIDEO_ROCKCHIP_VDEC=m$' "$PROFILE/kernel/edge-overrides.conf"
 grep -q '^CONFIG_DRM_PANTHOR=m$' "$PROFILE/kernel/edge-overrides.conf"
 grep -q '^CONFIG_INPUT_UINPUT=m$' "$PROFILE/kernel/edge-overrides.conf"
 grep -q '^CONFIG_BRCMFMAC_SDIO=y$' "$PROFILE/kernel/edge-overrides.conf"
 grep -q '^CONFIG_BT_HCIUART_BCM=y$' "$PROFILE/kernel/edge-overrides.conf"
+grep -q '^CONFIG_BTRFS_FS=y$' "$PROFILE/kernel/edge-overrides.conf"
+grep -q '^CONFIG_EXFAT_FS=m$' "$PROFILE/kernel/edge-overrides.conf"
+grep -q '^CONFIG_NTFS3_FS=m$' "$PROFILE/kernel/edge-overrides.conf"
+grep -q '^CONFIG_VFAT_FS=y$' "$PROFILE/kernel/edge-overrides.conf"
+grep -Fq '"BTRFS_FS:y" "EXFAT_FS:m" "NTFS3_FS:m" "VFAT_FS:y"' "$PROFILE/stages/20-armbian-kernel.sh"
+grep -Fq 'Btrfs root filesystem support was lost' "$PROFILE/stages/50-final-audit-build.sh"
 for spec in SOUND:m SND:m SND_SOC:m SND_SOC_HDMI_CODEC:m SND_SOC_ROCKCHIP_I2S_TDM:m SND_SIMPLE_CARD:m; do
   sym="${spec%%:*}"
   val="${spec#*:}"
   grep -qx "CONFIG_${sym}=${val}" "$PROFILE/kernel/edge-overrides.conf"
 done
 
-grep -q '^epiphany-browser$' "$PROFILE/packages/base.txt"
+! grep -q '^epiphany-browser$' "$PROFILE/packages/base.txt"
+for pkg in btrfs-progs dosfstools e2fsprogs exfatprogs ntfs-3g unattended-upgrades wireless-regdb iw wlr-randr edid-decode locales; do
+  grep -qx "$pkg" "$PROFILE/packages/base.txt"
+done
 grep -q '^nvme-cli$' "$PROFILE/packages/base.txt"
 grep -q '^libspa-0.2-bluetooth$' "$PROFILE/packages/base.txt"
 grep -q '^pipewire-pulse$' "$PROFILE/packages/base.txt"
@@ -149,10 +182,28 @@ grep -Fq 'opi-stremio-session-check' "$PROFILE/rootfs/customize.d/50-runtime-val
 grep -Fq 'opi-moonlight-hwcheck' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
 grep -Fq 'opi-moonlight-session-check' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
 grep -Fq 'opi-controller-check' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
-grep -Fq 'EasySMX|X20|Xbox|X-Box|gamepad|joystick' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
+grep -Fq 'ID_INPUT_JOYSTICK=1' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
 grep -Fq 'opi-audio-check' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
 grep -Fq 'opi-nvme-check' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
 grep -Fq 'Read-only NVMe inventory' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
+grep -Fq 'opi-validation-report' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
+grep -Fq 'opi-moonlight-display-auto' "$PROFILE/rootfs/customize.d/20-media-steam.sh.inc"
+grep -Fq 'wlr-randr --json' "$PROFILE/rootfs/customize.d/20-media-steam.sh.inc"
+grep -Fq 'HDR Static Metadata Data Block' "$PROFILE/rootfs/customize.d/20-media-steam.sh.inc"
+grep -Fq '/usr/local/bin/opi-moonlight-display-auto' "$PROFILE/recipes/build-moonlight.sh"
+grep -Fq 'guide+start' "$PROFILE/rootfs/customize.d/30-controller-session.sh.inc"
+grep -Fq 'controller mouse is not enabled' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq 'btrfs inspect-internal map-swapfile' "$PROFILE/rootfs/customize.d/60-performance-services.sh.inc"
+grep -Fq 'Steam-Experimental.sh' "$PROFILE/rootfs/customize.d/60-performance-services.sh.inc"
+grep -Fq 'Restart-Gaming-Mode.sh' "$PROFILE/rootfs/customize.d/60-performance-services.sh.inc"
+grep -Fq 'XKBLAYOUT="gb"' "$PROFILE/rootfs/customize.d/60-performance-services.sh.inc"
+grep -Fq 'REGDOMAIN=GB' "$PROFILE/rootfs/customize.d/60-performance-services.sh.inc"
+grep -Fq '"${distro_id}:${distro_codename}-security"' "$PROFILE/rootfs/customize.d/60-performance-services.sh.inc"
+grep -Fq 'brave-browser-apt-release.s3.brave.com/brave-browser.sources' "$PROFILE/stages/17-browser-preflight.sh"
+grep -Fq 'https://packages.mozilla.org/apt' "$PROFILE/stages/17-browser-preflight.sh"
+grep -Fq 'D16166072CACDF2C9429CBF11BF41E37D039F691' "$PROFILE/stages/17-browser-preflight.sh"
+grep -Fq '35BAA0B33E9EB396F59CA838C0BA5CE6DC6315A3' "$PROFILE/stages/17-browser-preflight.sh"
+grep -Fq 'x-scheme-handler/https=brave-browser.desktop' "$PROFILE/rootfs/customize.d/40-desktop-storage.sh.inc"
 grep -Fq 'udiskie --automount --no-notify' "$PROFILE/rootfs/customize.d/30-controller-session.sh.inc"
 ! grep -Eqi 'lumera|android.*(container|apk)|waydroid' "$PROFILE/packages/base.txt" "$PROFILE/packages/build-groups.txt" "$PROFILE/sources.env" "$PROFILE"/recipes/*.sh
 ! grep -F 'cmake --install' "$PROFILE"/recipes/*.sh | grep -Fq '|| true'
@@ -195,7 +246,7 @@ for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
   grep -Fq "$unit" "$PROFILE/stages/51-offline-image-qa.sh"
 done
 grep -Fq 'branches: [main]' "$ROOT/.github/workflows/ci.yml"
-grep -qx '3.16' "$ROOT/VERSION"
+grep -qx '3.17' "$ROOT/VERSION"
 ! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/stages/00-common.sh"
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/recipes/arm64-common.sh"

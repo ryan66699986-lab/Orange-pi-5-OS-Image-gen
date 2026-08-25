@@ -1,16 +1,48 @@
-log "Desktop browser defaults"
+log "Controller-accessible Brave default and Firefox alternative"
+cat > /usr/local/bin/opi-brave <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+export GTK_USE_PORTAL=1
+exec brave-browser --ozone-platform-hint=auto "$@"
+EOF
+cat > /usr/local/bin/opi-firefox <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+export MOZ_ENABLE_WAYLAND=1
+exec firefox "$@"
+EOF
+chmod 0755 /usr/local/bin/opi-brave /usr/local/bin/opi-firefox
 cat > /home/ryan/.config/mimeapps.list <<'EOF'
 [Default Applications]
-x-scheme-handler/http=org.gnome.Epiphany.desktop
-x-scheme-handler/https=org.gnome.Epiphany.desktop
-text/html=org.gnome.Epiphany.desktop
-application/xhtml+xml=org.gnome.Epiphany.desktop
+x-scheme-handler/http=brave-browser.desktop
+x-scheme-handler/https=brave-browser.desktop
+text/html=brave-browser.desktop
+application/xhtml+xml=brave-browser.desktop
 [Added Associations]
-x-scheme-handler/http=org.gnome.Epiphany.desktop;
-x-scheme-handler/https=org.gnome.Epiphany.desktop;
-text/html=org.gnome.Epiphany.desktop;
+x-scheme-handler/http=brave-browser.desktop;firefox.desktop;
+x-scheme-handler/https=brave-browser.desktop;firefox.desktop;
+text/html=brave-browser.desktop;firefox.desktop;
 EOF
 chown ryan:ryan /home/ryan/.config/mimeapps.list
+cat > /home/ryan/ROMs/ports/Brave-Browser.sh <<'EOF'
+#!/usr/bin/env bash
+exec opi-brave
+EOF
+cat > /home/ryan/ROMs/ports/Firefox-Browser.sh <<'EOF'
+#!/usr/bin/env bash
+exec opi-firefox
+EOF
+cat > /home/ryan/ROMs/ports/Network-Setup.sh <<'EOF'
+#!/usr/bin/env bash
+exec nm-connection-editor
+EOF
+cat > /home/ryan/ROMs/ports/Audio-Settings.sh <<'EOF'
+#!/usr/bin/env bash
+exec pavucontrol
+EOF
+chmod 0755 /home/ryan/ROMs/ports/Brave-Browser.sh /home/ryan/ROMs/ports/Firefox-Browser.sh \
+    /home/ryan/ROMs/ports/Network-Setup.sh /home/ryan/ROMs/ports/Audio-Settings.sh
+chown -R ryan:ryan /home/ryan/ROMs/ports
 log "USB ROM discovery"
 cat > /usr/local/bin/opi-rom-scan <<'EOF'
 #!/usr/bin/env bash

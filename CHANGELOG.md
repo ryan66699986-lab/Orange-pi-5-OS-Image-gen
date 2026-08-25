@@ -1,6 +1,20 @@
 # Changelog
 
-## V3.16 — current development generation
+## V3.17 — current development generation
+
+- Kept native Stremio after a renewed Stremio-versus-Lumera evaluation. Lumera remains an Android/Bionic Media3 application and would add an Android container plus a second unproven RK3588 codec path; Stremio remains directly auditable against the required Linux V4L2 Request FFmpeg/libmpv stack.
+- Replaced Epiphany with official ARM64 Brave and Firefox packages. The builder validates both repositories, signing-key fingerprints, package architecture and installed commands before the long native build sequence; Brave is the default and both browsers have ES-DE entries.
+- Replaced Moonlight's fixed 4K60/HDR settings with launch-time Wayland output and EDID detection. Hardware decode remains forced, the selected resolution/refresh/HDR policy is recorded, and post-stream validation requires the exact detected resolution plus affirmative hardware-decoder evidence.
+- Added Btrfs, exFAT, NTFS3 and VFAT kernel gates plus the corresponding common filesystem tools. The emergency swapfile service now detects Btrfs and safely creates a no-copy-on-write, uncompressed swapfile after the eventual NVMe migration.
+- Recorded the final storage plan without touching the installed NVMe: test on SD, then SD boot with Btrfs NVMe root after final approval, then eMMC boot with the same NVMe root after eMMC installation and cold-boot validation.
+- Applied UK locale, keyboard, timezone and Wi-Fi regulatory defaults and enabled security-only unattended upgrades without automatic reboot.
+- Generalized controller validation to any native Linux-input gamepad, changed the OSK chord to Guide+Start, and kept the EasySMX X20 as the wired/2.4 GHz/Bluetooth reference acceptance device.
+- Made Steam's experimental launcher permanently visible and on-demand, and added ES-DE entries for browsers, network, audio, desktop, gaming-session restart, reboot and power-off.
+- Added a persistent `opi-validation-report` command and expanded build-time, target-root and offline-image assertions for every new policy.
+
+V3.17 is the next test generation and is not a release declaration. A successful fresh build plus real Orange Pi hardware validation are still required.
+
+## V3.16
 
 - Fixed the V3.15 Moonlight packaging stop by explicitly creating `/out/rootfs/usr/local/bin` before redirecting the launcher into it.
 - Added immediate Moonlight launcher syntax, executable-mode and target-command assertions inside the ARM64 artifact recipe.

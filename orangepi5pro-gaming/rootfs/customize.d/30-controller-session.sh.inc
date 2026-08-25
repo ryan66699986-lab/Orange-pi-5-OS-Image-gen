@@ -2,16 +2,16 @@ log "Controller-wide OSK configuration"
 install -d -m0755 /etc/gamepad-osk
 cp /usr/share/gamepad-osk/config /etc/gamepad-osk/config 2>/dev/null || : > /etc/gamepad-osk/config
 if grep -qE '^[[:space:]]*toggle_combo[[:space:]]*=' /etc/gamepad-osk/config; then
-    sed -Ei 's/^[[:space:]]*toggle_combo[[:space:]]*=.*/toggle_combo = guide+a/' /etc/gamepad-osk/config
+    sed -Ei 's/^[[:space:]]*toggle_combo[[:space:]]*=.*/toggle_combo = guide+start/' /etc/gamepad-osk/config
 elif grep -qE '^\[gamepad\][[:space:]]*$' /etc/gamepad-osk/config; then
-    sed -i '/^\[gamepad\][[:space:]]*$/a toggle_combo = guide+a' /etc/gamepad-osk/config
+    sed -i '/^\[gamepad\][[:space:]]*$/a toggle_combo = guide+start' /etc/gamepad-osk/config
 else
-    printf '\n[gamepad]\ntoggle_combo = guide+a\n' >> /etc/gamepad-osk/config
+    printf '\n[gamepad]\ntoggle_combo = guide+start\n' >> /etc/gamepad-osk/config
 fi
 if grep -qE '^[[:space:]]*combo_period_ms[[:space:]]*=' /etc/gamepad-osk/config; then
     sed -Ei 's/^[[:space:]]*combo_period_ms[[:space:]]*=.*/combo_period_ms = 200/' /etc/gamepad-osk/config
 else
-    sed -i '/^[[:space:]]*toggle_combo[[:space:]]*= guide+a/a combo_period_ms = 200' /etc/gamepad-osk/config
+    sed -i '/^[[:space:]]*toggle_combo[[:space:]]*= guide+start/a combo_period_ms = 200' /etc/gamepad-osk/config
 fi
 
 log "Native Wayland session stack"

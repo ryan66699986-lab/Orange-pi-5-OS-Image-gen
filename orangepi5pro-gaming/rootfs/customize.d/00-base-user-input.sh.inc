@@ -14,15 +14,48 @@ if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
 fi
 apt-get update
 
+log "Configure official Brave and Mozilla ARM64 repositories"
+apt-get install -y --no-install-recommends ca-certificates curl gnupg
+install -d -m0755 /usr/share/keyrings /etc/apt/keyrings /etc/apt/sources.list.d /etc/apt/preferences.d
+curl --retry 3 --retry-delay 2 -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
+    https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+gpg --batch --show-keys --with-colons /usr/share/keyrings/brave-browser-archive-keyring.gpg 2>/dev/null \
+    | grep -Fqi 'fpr:::::::::D16166072CACDF2C9429CBF11BF41E37D039F691:' \
+    || { echo "Official Brave signing-key fingerprint mismatch" >&2; exit 1; }
+curl --retry 3 --retry-delay 2 -fsSLo /etc/apt/sources.list.d/brave-browser-release.sources \
+    https://brave-browser-apt-release.s3.brave.com/brave-browser.sources
+curl --retry 3 --retry-delay 2 -fsSLo /etc/apt/keyrings/packages.mozilla.org.asc \
+    https://packages.mozilla.org/apt/repo-signing-key.gpg
+gpg --batch --show-keys --with-colons /etc/apt/keyrings/packages.mozilla.org.asc 2>/dev/null \
+    | grep -Fqi 'fpr:::::::::35BAA0B33E9EB396F59CA838C0BA5CE6DC6315A3:' \
+    || { echo "Official Mozilla signing-key fingerprint mismatch" >&2; exit 1; }
+cat > /etc/apt/sources.list.d/mozilla.sources <<'EOF'
+Types: deb
+URIs: https://packages.mozilla.org/apt
+Suites: mozilla
+Components: main
+Signed-By: /etc/apt/keyrings/packages.mozilla.org.asc
+EOF
+cat > /etc/apt/preferences.d/mozilla <<'EOF'
+Package: *
+Pin: origin packages.mozilla.org
+Pin-Priority: 1000
+
+Package: firefox
+Pin: release o=Ubuntu
+Pin-Priority: -1
+EOF
+apt-get update
+
 log "Install preflighted Resolute ARM64 runtime"
 mapfile -t REQUIRED < /tmp/overlay/opt/opi-build-meta/required-packages.txt
 apt-get install -y --no-install-recommends "${REQUIRED[@]}"
 
-log "Browser: Ubuntu-native Epiphany/Web"
-command -v epiphany >/dev/null 2>&1 || {
-    echo "Epiphany browser missing after runtime package install" >&2
-    exit 1
-}
+log "Browsers: official Brave default plus Mozilla Firefox alternative"
+apt-get install -y --no-install-recommends brave-browser firefox
+command -v brave-browser >/dev/null 2>&1 || { echo "Brave browser missing after install" >&2; exit 1; }
+command -v firefox >/dev/null 2>&1 || { echo "Firefox missing after install" >&2; exit 1; }
+[[ "$(dpkg --print-architecture)" == arm64 ]] || { echo "Browser target root is not ARM64" >&2; exit 1; }
 
 log "Copy prebuilt validated overlay"
 cp -a /tmp/overlay/. /

@@ -11,7 +11,7 @@ The layout deliberately follows the same broad repository philosophy used by pro
 | Item | Current state |
 |---|---|
 | Profile | `orangepi5pro-gaming` |
-| Project generation | V3.16 |
+| Project generation | V3.17 |
 | Board | Orange Pi 5 Pro, RK3588S, 4 GB |
 | Base | Armbian build framework |
 | Distribution | Ubuntu 26.04 Resolute |
@@ -19,12 +19,12 @@ The layout deliberately follows the same broad repository philosophy used by pro
 | Session | greetd → Gamescope → ES-DE |
 | Desktop fallback | Labwc / Wayland |
 | Media | Native Stremio + enforced RK3588 V4L2 Request FFmpeg/libmpv path; H.264/HEVC/Main10/VP9/AV1 4K probes |
-| Streaming | Moonlight, forced hardware decode through the same audited media stack; 4K60/HDR defaults |
-| Reference controller | EasySMX X20 (wired, 2.4 GHz and Bluetooth acceptance) |
+| Streaming | Moonlight, forced hardware decode through the same audited media stack; display mode and HDR auto-detected at launch |
+| Controllers | Any native Linux-input gamepad; EasySMX X20 is the wired/2.4 GHz/Bluetooth reference device |
 | Audio | PipeWire HDMI/DisplayPort plus Bluetooth audio |
-| Storage policy | SD boot/current root only; installed NVMe remains read-only until final image approval |
-| Browser | Epiphany/Web |
-| Status | active development; V3.16 is ready for the next fresh-workspace build/test and is not yet hardware-proven |
+| Storage policy | SD boot/current root only during testing; final plan is SD boot + Btrfs NVMe root, later eMMC boot + Btrfs NVMe root |
+| Browser | Brave default, Firefox alternative; gamepad mouse/OSK available |
+| Status | active development; V3.17 is ready for the next fresh-workspace build/test and is not yet hardware-proven |
 
 ## Repository layout
 
@@ -70,4 +70,4 @@ Changes should now be made here first:
 5. attach the resulting build log to the issue/commit discussion when diagnosing a failure;
 6. tag known-good milestones only after the image and hardware validation gates pass.
 
-See `docs/ARCHITECTURE.md`, `docs/BUILDING.md`, `docs/STATUS.md`, `docs/VALIDATION.md` and `docs/V3.16-AUDIT.md`.
+See `docs/ARCHITECTURE.md`, `docs/BUILDING.md`, `docs/STATUS.md`, `docs/VALIDATION.md` and `docs/V3.17-AUDIT.md`.

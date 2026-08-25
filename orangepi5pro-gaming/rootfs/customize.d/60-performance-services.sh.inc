@@ -10,11 +10,21 @@ cat > /usr/local/sbin/opi-ensure-swapfile <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 swap=/swapfile
+root_fstype="$(findmnt -n -o FSTYPE / 2>/dev/null || true)"
+if [[ "$root_fstype" == btrfs && -f "$swap" ]] && ! btrfs inspect-internal map-swapfile -r "$swap" >/dev/null 2>&1; then
+  swapoff "$swap" 2>/dev/null || true
+  rm -f -- "$swap"
+fi
 if [[ ! -f "$swap" ]]; then
   avail_kb="$(df -Pk / | awk 'NR==2 {print $4}')"; target_mb=2048
   if (( avail_kb < 3072 * 1024 )); then target_mb=1024; fi
   if (( avail_kb < 2048 * 1024 )); then target_mb=512; fi
   if (( avail_kb < 1280 * 1024 )); then echo "WARN: not enough free rootfs space for disk swap fallback; zram remains active" >&2; exit 0; fi
+  if [[ "$root_fstype" == btrfs ]]; then
+    touch "$swap"
+    chattr +C "$swap"
+    btrfs property set "$swap" compression none
+  fi
   fallocate -l "${target_mb}M" "$swap" || dd if=/dev/zero of="$swap" bs=1M count="$target_mb" status=progress
   chmod 0600 "$swap"; mkswap "$swap"
 fi
@@ -72,12 +82,58 @@ if [[ -f /boot/armbianEnv.txt ]]; then
 fi
 log "Locale/timezone/services"
 if grep -q '^# *en_GB.UTF-8 UTF-8' /etc/locale.gen 2>/dev/null; then sed -i 's/^# *en_GB.UTF-8 UTF-8/en_GB.UTF-8 UTF-8/' /etc/locale.gen; fi
-locale-gen en_GB.UTF-8 || true; update-locale LANG=en_GB.UTF-8 || true
+locale-gen en_GB.UTF-8
+update-locale LANG=en_GB.UTF-8
 ln -snf /usr/share/zoneinfo/Europe/London /etc/localtime; echo Europe/London > /etc/timezone
+cat > /etc/default/keyboard <<'EOF'
+XKBMODEL="pc105"
+XKBLAYOUT="gb"
+XKBVARIANT=""
+XKBOPTIONS=""
+BACKSPACE="guess"
+EOF
+cat > /etc/default/crda <<'EOF'
+REGDOMAIN=GB
+EOF
+cat > /usr/local/sbin/opi-set-regdomain <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+for attempt in {1..10}; do
+  iw reg set GB
+  iw reg get | grep -Eq '^country GB:' && exit 0
+  sleep 1
+done
+echo "Unable to set Wi-Fi regulatory domain to GB" >&2
+exit 1
+EOF
+chmod 0755 /usr/local/sbin/opi-set-regdomain
+cat > /etc/systemd/system/opi-regdomain.service <<'EOF'
+[Unit]
+Description=Set United Kingdom Wi-Fi regulatory domain
+After=NetworkManager.service
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/opi-set-regdomain
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target
+EOF
+cat > /etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+EOF
+cat > /etc/apt/apt.conf.d/52opi-unattended-upgrades <<'EOF'
+Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}-security";
+};
+Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::Remove-Unused-Dependencies "false";
+EOF
 systemctl disable lightdm.service 2>/dev/null || true
 for unit in armbian-zram-config.service armbian-ramlog.service; do if systemctl cat "$unit" >/dev/null 2>&1; then systemctl disable "$unit" 2>/dev/null || true; systemctl mask "$unit"; fi; done
 for unit in systemd-oomd.service systemd-oomd.socket; do if systemctl cat "$unit" >/dev/null 2>&1; then systemctl disable "$unit" 2>/dev/null || true; systemctl mask "$unit"; fi; done
-systemctl enable greetd.service NetworkManager.service bluetooth.service opi-swapfile.service opi-performance.service earlyoom.service
+systemctl enable greetd.service NetworkManager.service bluetooth.service opi-swapfile.service opi-performance.service opi-regdomain.service earlyoom.service
+systemctl enable apt-daily.timer apt-daily-upgrade.timer
 systemctl disable ssh.service 2>/dev/null || true; systemctl disable ssh.socket 2>/dev/null || true
 systemctl --global enable opi-rom-scan.timer
 cat > /home/ryan/ROMs/ports/Desktop-Mode.sh <<'EOF'
@@ -92,13 +148,22 @@ cat > /home/ryan/ROMs/ports/Power-Off.sh <<'EOF'
 #!/usr/bin/env bash
 sudo systemctl poweroff
 EOF
-if [[ -f /opt/opi-seed/steam-arm64.zip ]]; then cat > /home/ryan/ROMs/ports/Steam-Experimental.sh <<'EOF'
+cat > /home/ryan/ROMs/ports/Restart-Gaming-Mode.sh <<'EOF'
+#!/usr/bin/env bash
+sudo opi-set-session gaming
+sudo systemctl restart greetd
+EOF
+cat > /home/ryan/ROMs/ports/Steam-Experimental.sh <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-steamsh="$(find "$HOME/.local/share/Steam" -type f -name steam.sh | head -n1)"
-[[ -n "$steamsh" ]] || { echo "Steam ARM64 not installed"; exit 1; }
+mkdir -p "$HOME/.local/share/Steam"
+steamsh="$(find "$HOME/.local/share/Steam" -type f -name steam.sh -print -quit 2>/dev/null || true)"
+if [[ -z "$steamsh" ]]; then
+  steam-arm64-bootstrap
+  steamsh="$(find "$HOME/.local/share/Steam" -type f -name steam.sh -print -quit 2>/dev/null || true)"
+fi
+[[ -n "$steamsh" ]] || { echo "Steam ARM64 bootstrap did not install steam.sh"; exit 1; }
 exec "$steamsh" -gamepadui
 EOF
-fi
 chmod 0755 /home/ryan/ROMs/ports/*.sh; chown -R ryan:ryan /home/ryan/ROMs/ports
 chown -R ryan:ryan /home/ryan; rm -f /root/.not_logged_in_yet

@@ -56,7 +56,10 @@ export LD_LIBRARY_PATH="/opt/opi/media/lib:${LD_LIBRARY_PATH:-}"
 [[ -x "$bin" ]] || { echo "FAIL: Moonlight executable missing: $bin"; exit 1; }
 [[ -r "$cfg" ]] || { echo "FAIL: Moonlight hardware policy missing: $cfg"; exit 1; }
 grep -qx 'videodec=1' "$cfg" || { echo "FAIL: Moonlight is not configured to force hardware decode"; exit 1; }
-grep -qx 'width=3840' "$cfg" && grep -qx 'height=2160' "$cfg" || { echo "FAIL: Moonlight 4K defaults missing"; exit 1; }
+for key in width height fps; do
+  value="$(sed -n "s/^${key}=//p" "$cfg" | tail -n1)"
+  [[ "$value" =~ ^[1-9][0-9]*$ ]] || { echo "FAIL: Moonlight ${key} is not a positive integer"; exit 1; }
+done
 /opt/opi/media/bin/ffmpeg -hide_banner -hwaccels 2>&1 | grep -qi v4l2request || { echo "FAIL: dedicated FFmpeg lacks v4l2request"; exit 1; }
 ldd "$bin" > /tmp/opi-moonlight-ldd.txt
 ! grep -q 'not found' /tmp/opi-moonlight-ldd.txt || { cat /tmp/opi-moonlight-ldd.txt; echo "FAIL: Moonlight has unresolved libraries"; exit 1; }
@@ -70,15 +73,22 @@ cat > /usr/local/bin/opi-moonlight-session-check <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 state_log="${XDG_STATE_HOME:-$HOME/.local/state}/opi/moonlight.log"
+display_env="${XDG_STATE_HOME:-$HOME/.local/state}/opi/moonlight-display.env"
+[[ -r "$display_env" ]] || { echo "FAIL: no display policy record. Launch Moonlight once first: $display_env"; exit 1; }
+# shellcheck disable=SC1090
+source "$display_env"
+for value in "${EXPECTED_WIDTH:-}" "${EXPECTED_HEIGHT:-}" "${EXPECTED_FPS:-}"; do
+  [[ "$value" =~ ^[1-9][0-9]*$ ]] || { echo "FAIL: invalid Moonlight display policy record"; exit 1; }
+done
 logs=()
 [[ -s "$state_log" ]] && logs+=("$state_log")
 while IFS= read -r -d '' f; do logs+=("$f"); done < <(find /tmp -maxdepth 1 -type f -name 'Moonlight-*.log' -print0 2>/dev/null)
-((${#logs[@]})) || { echo "FAIL: no Moonlight log yet. Complete a 4K stream first."; exit 1; }
+((${#logs[@]})) || { echo "FAIL: no Moonlight log yet. Complete a stream at the detected display mode first."; exit 1; }
 grep -Ehi 'Video stream is|FFmpeg-based .*video decoder chosen|missing hardware|force hardware' "${logs[@]}" > /tmp/opi-moonlight-evidence.txt || true
-grep -Eqi 'Video stream is 3840x2160x' /tmp/opi-moonlight-evidence.txt || { cat /tmp/opi-moonlight-evidence.txt; echo "FAIL: no completed 3840x2160 Moonlight stream evidence"; exit 1; }
+grep -Eqi "Video stream is ${EXPECTED_WIDTH}x${EXPECTED_HEIGHT}x" /tmp/opi-moonlight-evidence.txt || { cat /tmp/opi-moonlight-evidence.txt; echo "FAIL: no completed ${EXPECTED_WIDTH}x${EXPECTED_HEIGHT} Moonlight stream evidence"; exit 1; }
 grep -Eqi 'FFmpeg-based hardware-accelerated video decoder chosen' /tmp/opi-moonlight-evidence.txt || { cat /tmp/opi-moonlight-evidence.txt; echo "FAIL: no Moonlight hardware-decoder evidence"; exit 1; }
 ! grep -Eqi 'missing hardware|force hardware.*(cannot|missing|failed)' /tmp/opi-moonlight-evidence.txt || { cat /tmp/opi-moonlight-evidence.txt; echo "FAIL: Moonlight logged a hardware-decode failure"; exit 1; }
-echo "PASS: Moonlight completed a 4K hardware-decoded stream"
+echo "PASS: Moonlight completed a ${EXPECTED_WIDTH}x${EXPECTED_HEIGHT} hardware-decoded stream (HDR detected: ${HDR_DETECTED:-unknown})"
 EOF
 chmod 0755 /usr/local/bin/opi-moonlight-session-check
 cat > /usr/local/bin/opi-controller-check <<'EOF'
@@ -89,14 +99,14 @@ while IFS= read -r dev; do
   [[ -e "$dev" ]] || continue
   name="$(udevadm info --query=property --name="$dev" 2>/dev/null | sed -n 's/^NAME=//p' | head -n1)"
   props="$(udevadm info --query=property --name="$dev" 2>/dev/null || true)"
-  if grep -Eqi 'EasySMX|X20|Xbox|X-Box|gamepad|joystick' <<<"$name $props"; then
+  if grep -q '^ID_INPUT_JOYSTICK=1$' <<<"$props"; then
     printf 'Controller: %s (%s)\n' "${name:-unknown}" "$dev"
     [[ -r "$dev" ]] || { echo "FAIL: controller event node is not readable"; exit 1; }
     found=1
   fi
 done < <(find /dev/input -maxdepth 1 -type c -name 'event*' -print 2>/dev/null | sort)
-((found)) || { echo "FAIL: no EasySMX X20/XInput-compatible controller detected"; exit 1; }
-echo "PASS: reference controller is visible to Linux input. Use evtest for every axis/button and force-feedback validation."
+((found)) || { echo "FAIL: no Linux-input game controller detected"; exit 1; }
+echo "PASS: controller is visible through native Linux input. Use evtest for every axis/button and force-feedback validation."
 EOF
 chmod 0755 /usr/local/bin/opi-controller-check
 cat > /usr/local/bin/opi-audio-check <<'EOF'
@@ -163,9 +173,10 @@ test -f /opt/stremio/libopi-stremio-hwdec.so && pass "Stremio hwdec override" ||
 if /usr/local/bin/opi-stremio-hwcheck >/tmp/opi-hwcheck.log 2>&1; then pass "REAL RK3588 hardware video decode"; else fail "Stremio hardware-decode gate failed; see /tmp/opi-hwcheck.log"; fi
 if /usr/local/bin/opi-stremio-session-check >/tmp/opi-stremio-session-check.log 2>&1; then pass "Stremio process hardware-decode evidence"; else warn "Play H.264 and HEVC in Stremio, then run opi-stremio-session-check"; fi
 if /usr/local/bin/opi-moonlight-hwcheck >/tmp/opi-moonlight-hwcheck.log 2>&1; then pass "Moonlight forced-hardware V4L2 Request stack"; else fail "Moonlight hardware policy failed; see /tmp/opi-moonlight-hwcheck.log"; fi
-if /usr/local/bin/opi-moonlight-session-check >/tmp/opi-moonlight-session-check.log 2>&1; then pass "Moonlight 4K hardware-decoded stream evidence"; else warn "Complete a 4K Moonlight stream, then run opi-moonlight-session-check"; fi
+if /usr/local/bin/opi-moonlight-session-check >/tmp/opi-moonlight-session-check.log 2>&1; then pass "Moonlight native-display hardware-decoded stream evidence"; else warn "Complete a Moonlight stream at the detected display mode, then run opi-moonlight-session-check"; fi
 for spec in "PS1:duckstation" "PS2:armsx2" "PSP:ppsspp" "N64:rmg" "Dreamcast:flycast" "GameCube/Wii:dolphin-emu" "GB/GBC:sameboy" "GBA:mgba-qt" "DS:melonds" "3DS:azahar" "NES:nestopia" "SNES:snes9x-gtk"; do name="${spec%%:*}"; exe="${spec#*:}"; command -v "$exe" >/dev/null && pass "$name emulator" || fail "$name emulator missing: $exe"; done
-command -v epiphany >/dev/null && pass "Epiphany/Web browser" || fail "Epiphany browser missing"
+command -v brave-browser >/dev/null && pass "Brave default browser" || fail "Brave browser missing"
+command -v firefox >/dev/null && pass "Firefox alternative browser" || fail "Firefox browser missing"
 command -v wpctl >/dev/null && pass "PipeWire/WirePlumber" || fail "Audio tools missing"
 dpkg -s libspa-0.2-bluetooth >/dev/null 2>&1 && pass "PipeWire Bluetooth audio" || fail "Bluetooth audio plugin missing"
 if /usr/local/bin/opi-audio-check >/tmp/opi-audio-check.log 2>&1; then pass "HDMI + Bluetooth audio capability"; else fail "Audio capability gate failed; see /tmp/opi-audio-check.log"; fi
@@ -176,7 +187,17 @@ command -v cec-ctl >/dev/null && pass "Kernel HDMI-CEC tools" || warn "cec-ctl m
 compgen -G '/dev/cec*' >/dev/null && pass "HDMI-CEC adapter node" || warn "No /dev/cec* node"
 test -e /dev/dri/renderD128 && pass "DRM render node" || warn "DRM render node missing"
 info "Stremio HW decode is a hard runtime gate: opi-stremio-hwcheck and post-playback opi-stremio-session-check must PASS"
-info "Moonlight HW decode is a hard runtime gate: opi-moonlight-hwcheck and a 4K opi-moonlight-session-check must PASS"
+info "Moonlight HW decode is a hard runtime gate: opi-moonlight-hwcheck and a detected-display opi-moonlight-session-check must PASS"
 echo; echo "TOTAL: $P PASS, $W WARN, $F FAIL, $I INFO"; ((F==0))
 EOF
 chmod 0755 /usr/local/bin/opi-validate
+cat > /usr/local/bin/opi-validation-report <<'EOF'
+#!/usr/bin/env bash
+set -o pipefail
+out="${1:-$HOME/opi-validation-$(date +%Y%m%d-%H%M%S).log}"
+/usr/local/bin/opi-validate 2>&1 | tee "$out"
+status="${PIPESTATUS[0]}"
+printf '\nValidation report: %s\n' "$out"
+exit "$status"
+EOF
+chmod 0755 /usr/local/bin/opi-validation-report
