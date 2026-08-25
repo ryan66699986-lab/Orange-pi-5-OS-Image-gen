@@ -1,6 +1,20 @@
 log "Controller-wide OSK configuration"
 install -d -m0755 /etc/gamepad-osk
 cp /usr/share/gamepad-osk/config /etc/gamepad-osk/config 2>/dev/null || : > /etc/gamepad-osk/config
+
+ensure_gamepad_mouse_enabled() {
+    local config="$1"
+    if grep -qE '^[[:space:]]*\[mouse\][[:space:]]*$' "$config"; then
+        if awk 'BEGIN{in_mouse=0;found=0} /^[[:space:]]*\[mouse\][[:space:]]*$/{in_mouse=1;next} /^[[:space:]]*\[/{in_mouse=0} in_mouse && /^[[:space:]]*enabled[[:space:]]*=/{found=1} END{exit !found}' "$config"; then
+            sed -Ei '/^[[:space:]]*\[mouse\][[:space:]]*$/,/^[[:space:]]*\[/{s/^[[:space:]]*enabled[[:space:]]*=.*/enabled = true/;}' "$config"
+        else
+            sed -i '/^[[:space:]]*\[mouse\][[:space:]]*$/a enabled = true' "$config"
+        fi
+    else
+        printf '\n[mouse]\nenabled = true\n' >> "$config"
+    fi
+}
+
 if grep -qE '^[[:space:]]*toggle_combo[[:space:]]*=' /etc/gamepad-osk/config; then
     sed -Ei 's/^[[:space:]]*toggle_combo[[:space:]]*=.*/toggle_combo = guide+start/' /etc/gamepad-osk/config
 elif grep -qE '^\[gamepad\][[:space:]]*$' /etc/gamepad-osk/config; then
@@ -13,6 +27,7 @@ if grep -qE '^[[:space:]]*combo_period_ms[[:space:]]*=' /etc/gamepad-osk/config;
 else
     sed -i '/^[[:space:]]*toggle_combo[[:space:]]*= guide+start/a combo_period_ms = 200' /etc/gamepad-osk/config
 fi
+ensure_gamepad_mouse_enabled /etc/gamepad-osk/config
 
 log "Native Wayland session stack"
 cat > /usr/local/bin/opi-gaming-child <<'EOF'
