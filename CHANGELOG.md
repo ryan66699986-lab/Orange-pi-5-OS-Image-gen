@@ -8,6 +8,7 @@
 - Require exactly one `[mouse]` section and accept legal inline comments in both the target-root gate and the completed-image offline QA.
 - Added executable regression fixtures for an existing disabled setting, a missing section and the exact inline-comment syntax that stopped V3.19.
 - Retained native Stremio with mandatory V4L2 Request hardware-decoding gates, controller-first ES-DE/Gamescope/Labwc, display-aware Moonlight, official Brave/Firefox, fresh workspaces and the read-only NVMe policy during image testing.
+- Added a complete maintainer/operator handbook covering requirements, architecture decisions, component provenance, emulation mapping, build/release workflow, runtime operations, physical validation evidence, storage migration/rollback, troubleshooting, security and primary upstream references. Static checks now verify all relative handbook links.
 
 V3.20 is the next test generation and is not a release declaration. A successful fresh build plus real Orange Pi hardware validation are still required.
 

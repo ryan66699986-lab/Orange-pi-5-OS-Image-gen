@@ -6,6 +6,8 @@ This repository is the **working source of truth** for the project. The generate
 
 The layout deliberately follows the same broad repository philosophy used by projects such as CachyOS' kernel repository: keep build recipes, configuration, source pins and validation in Git; keep generated binaries/images out of Git.
 
+This is not a generic Armbian remix. It is an appliance-style image with explicit release gates: native ARM64 emulation, a controller-operable interface, real RK3588 hardware video decoding inside Stremio, hardware-decoded Moonlight streaming, and repeatable image construction from auditable source pins. A completed build is a candidate; only physical-board validation can make it known-good.
+
 ## Current development target
 
 | Item | Current state |
@@ -59,6 +61,29 @@ cd Orange-pi-5-OS-Image-gen
 
 The build retains the project's strict fresh-workspace rule: every attempt deletes the versioned Armbian workspace and clones a new Armbian tree. Failed workspaces are diagnostic-only and are never resumed.
 
+The builder never writes to the Orange Pi's installed NVMe. During image development the NVMe is limited to read-only inventory and SMART queries. See the storage handbook before any post-validation migration.
+
+## Documentation map
+
+| Document | Purpose |
+|---|---|
+| [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) | Authoritative goals, non-goals and definition of done |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System boundaries, boot/session topology and media architecture |
+| [`docs/DESIGN-DECISIONS.md`](docs/DESIGN-DECISIONS.md) | Choices, rejected alternatives and reasons |
+| [`docs/COMPONENTS.md`](docs/COMPONENTS.md) | Component inventory, pins, acquisition and validation strategy |
+| [`docs/EMULATION.md`](docs/EMULATION.md) | Console-to-emulator mapping, ROM layout, formats and test scope |
+| [`docs/BUILDING.md`](docs/BUILDING.md) | Host requirements, complete pipeline and build outputs |
+| [`docs/VALIDATION.md`](docs/VALIDATION.md) | Offline and physical-hardware release gates |
+| [`docs/VALIDATION-RECORD-TEMPLATE.md`](docs/VALIDATION-RECORD-TEMPLATE.md) | Reusable evidence sheet for each image candidate |
+| [`docs/RELEASE-PROCESS.md`](docs/RELEASE-PROCESS.md) | Versioning, candidate promotion, tagging and rollback |
+| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Daily use, session switching, helpers, logs and maintenance |
+| [`docs/STORAGE.md`](docs/STORAGE.md) | SD/NVMe/eMMC phases, safeguards, migration and rollback |
+| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Failure triage for builds and runtime faults |
+| [`docs/REFERENCES.md`](docs/REFERENCES.md) | Curated primary upstream documentation |
+| [`docs/STATUS.md`](docs/STATUS.md) | Current generation and outstanding proof |
+| [`docs/V3.20-AUDIT.md`](docs/V3.20-AUDIT.md) | Most recent full build-log audit |
+| [`SECURITY.md`](SECURITY.md) | Security model and responsible reporting |
+
 ## Development workflow
 
 Changes should now be made here first:
@@ -70,4 +95,4 @@ Changes should now be made here first:
 5. attach the resulting build log to the issue/commit discussion when diagnosing a failure;
 6. tag known-good milestones only after the image and hardware validation gates pass.
 
-See `docs/ARCHITECTURE.md`, `docs/BUILDING.md`, `docs/STATUS.md`, `docs/VALIDATION.md` and `docs/V3.20-AUDIT.md`.
+Start with `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/VALIDATION.md`. Maintainers should also read `CONTRIBUTING.md` before changing the image contract.
