@@ -25,7 +25,8 @@ for key in width height fps; do grep -Eq "^${key}=[1-9][0-9]*$" "/home/ryan/.con
 [[ "$(cat /etc/opi/session-mode)" == gaming ]] || { echo "Default session mode is not gaming" >&2; exit 1; }
 grep -Eq '^[[:space:]]*toggle_combo[[:space:]]*=[[:space:]]*guide\+start([[:space:]]*)$' /etc/gamepad-osk/config || { echo "gamepad-osk Guide+Start toggle is not configured" >&2; exit 1; }
 [[ "$(grep -Ec '^[[:space:]]*\[gamepad\][[:space:]]*$' /etc/gamepad-osk/config)" -eq 1 ]] || { echo "gamepad-osk config does not contain exactly one [gamepad] section" >&2; exit 1; }
-awk 'BEGIN{ok=0} /^\[mouse\]/{mouse=1;next} /^\[/{mouse=0} mouse && /^[[:space:]]*enabled[[:space:]]*=[[:space:]]*true[[:space:]]*$/{ok=1} END{exit !ok}' /etc/gamepad-osk/config || { echo "gamepad-osk controller mouse is not enabled" >&2; exit 1; }
+[[ "$(grep -Ec '^[[:space:]]*\[mouse\][[:space:]]*$' /etc/gamepad-osk/config)" -eq 1 ]] || { echo "gamepad-osk config does not contain exactly one [mouse] section" >&2; exit 1; }
+awk 'BEGIN{ok=0} /^[[:space:]]*\[mouse\][[:space:]]*$/{mouse=1;next} /^[[:space:]]*\[/{mouse=0} mouse && /^[[:space:]]*enabled[[:space:]]*=[[:space:]]*true([[:space:]]*#.*)?[[:space:]]*$/{ok=1} END{exit !ok}' /etc/gamepad-osk/config || { echo "gamepad-osk controller mouse is not enabled" >&2; exit 1; }
 LD_LIBRARY_PATH=/opt/opi/media/lib:/opt/opi/media/lib64 ldd /opt/stremio/stremio > /tmp/stremio-ldd.txt
 ! grep -q 'not found' /tmp/stremio-ldd.txt || { cat /tmp/stremio-ldd.txt >&2; echo "Stremio has unresolved shared libraries" >&2; exit 1; }
 grep -Eq 'libmpv\.so[^ ]*[[:space:]]+=>[[:space:]]+/opt/opi/media/' /tmp/stremio-ldd.txt || { cat /tmp/stremio-ldd.txt >&2; echo "Stremio is not resolving libmpv from /opt/opi/media" >&2; exit 1; }
