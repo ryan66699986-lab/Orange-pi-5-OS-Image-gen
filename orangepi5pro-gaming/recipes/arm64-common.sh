@@ -49,7 +49,14 @@ collect_runtime_packages() {
 
     sort -u "$libs" | while read -r lib; do
         [[ -e "$lib" ]] || continue
-        dpkg-query -S "$lib" 2>/dev/null | head -n1 | cut -d: -f1 || true
+        owner="$(dpkg-query -S "$lib" 2>/dev/null | head -n1 | cut -d: -f1 || true)"
+        if [[ -z "$owner" ]]; then
+            # ldd may report /lib/... on a merged-/usr system while dpkg owns
+            # the canonical /usr/lib/... pathname. Query both representations.
+            canonical="$(readlink -f "$lib" 2>/dev/null || true)"
+            [[ -n "$canonical" ]] && owner="$(dpkg-query -S "$canonical" 2>/dev/null | head -n1 | cut -d: -f1 || true)"
+        fi
+        [[ -n "$owner" ]] && printf '%s\n' "$owner"
     done | sed '/^$/d' | sort -u > "$pkgs"
 
     cp "$pkgs" "$out"
