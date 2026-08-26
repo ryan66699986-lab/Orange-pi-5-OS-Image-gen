@@ -1,0 +1,11 @@
+[Unit]
+Description=Orange Pi gaming performance policy
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'for f in /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; do test -w "$f" && echo performance > "$f" || true; done'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

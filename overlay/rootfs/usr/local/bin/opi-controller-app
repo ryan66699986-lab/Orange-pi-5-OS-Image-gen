@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+opi-controller-nav >/dev/null 2>&1 &
+nav_pid=$!
+sleep 0.1
+if kill -0 "${nav_pid}" 2>/dev/null; then
+    trap 'kill "${nav_pid}" 2>/dev/null || true' EXIT INT TERM
+fi
+"$@"

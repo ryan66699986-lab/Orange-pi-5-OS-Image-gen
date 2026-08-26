@@ -1,7 +1,3 @@
-out/
-*.img
-*.img.xz
 *.log
-failed-*/
-.DS_Store
 __pycache__/
+.pytest_cache/

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -u
+clear
+printf 'Orange Pi controller image - first boot\n\n'
+printf 'Temporary password: orangepi\n'
+printf 'Press Guide+A to open the controller keyboard.\n'
+printf 'Choose a new password now.\n\n'
+if passwd; then
+    rm -f "${HOME}/.config/opi/password-setup-required"
+    printf '\nPassword changed. Starting Gaming Mode...\n'
+    sleep 2
+fi

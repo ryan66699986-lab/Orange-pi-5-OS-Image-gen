@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+for _ in $(seq 1 15); do
+    sink="$(wpctl status 2>/dev/null | sed -n '/Sinks:/,/Sources:/p' | grep -iE 'HDMI|DisplayPort' | head -n1 | sed -E 's/.*[^0-9]([0-9]+)\..*/\1/' || true)"
+    if [[ "${sink}" =~ ^[0-9]+$ ]]; then
+        wpctl set-default "${sink}"
+        exit 0
+    fi
+    sleep 1
+done
+exit 0

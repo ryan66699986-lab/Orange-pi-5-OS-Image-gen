@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+import glob
+import fcntl
+import math
+import os
+import select
+import time
+
+from evdev import InputDevice, UInput, ecodes
+
+lock_path = f"/run/user/{os.getuid()}/opi-controller-nav.lock"
+lock_file = open(lock_path, "w", encoding="ascii")
+try:
+    fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except BlockingIOError:
+    raise SystemExit(0)
+
+capabilities = {
+    ecodes.EV_KEY: [
+        ecodes.BTN_LEFT, ecodes.BTN_RIGHT, ecodes.KEY_ENTER, ecodes.KEY_ESC,
+        ecodes.KEY_LEFT, ecodes.KEY_RIGHT, ecodes.KEY_UP, ecodes.KEY_DOWN,
+        ecodes.KEY_TAB,
+    ],
+    ecodes.EV_REL: [ecodes.REL_X, ecodes.REL_Y, ecodes.REL_WHEEL],
+}
+virtual_input = UInput(capabilities, name="OPi Controller Navigation")
+devices = {}
+axes = {}
+last_scan = 0.0
+
+
+def scan():
+    global last_scan
+    last_scan = time.monotonic()
+    for path in glob.glob("/dev/input/event*"):
+        if path in devices:
+            continue
+        try:
+            device = InputDevice(path)
+            keys = set(device.capabilities().get(ecodes.EV_KEY, []))
+            if ecodes.BTN_SOUTH in keys and device.name != "OPi Controller Navigation":
+                devices[path] = device
+                axes[path] = {ecodes.ABS_X: 0.0, ecodes.ABS_Y: 0.0, ecodes.ABS_RY: 0.0}
+            else:
+                device.close()
+        except OSError:
+            pass
+
+
+def normalized(device, code, value):
+    info = device.absinfo(code)
+    if not info or info.maximum == info.minimum:
+        return 0.0
+    centre = (info.maximum + info.minimum) / 2
+    span = (info.maximum - info.minimum) / 2
+    result = (value - centre) / span
+    return 0.0 if abs(result) < 0.18 else max(-1.0, min(1.0, result))
+
+
+button_map = {
+    ecodes.BTN_SOUTH: ecodes.BTN_LEFT,
+    ecodes.BTN_EAST: ecodes.BTN_RIGHT,
+    ecodes.BTN_NORTH: ecodes.KEY_ENTER,
+    ecodes.BTN_WEST: ecodes.KEY_ESC,
+    ecodes.BTN_TL: ecodes.KEY_TAB,
+}
+
+while True:
+    if time.monotonic() - last_scan > 2:
+        scan()
+    ready, _, _ = select.select(list(devices.values()), [], [], 0.016)
+    for device in ready:
+        try:
+            for event in device.read():
+                if event.type == ecodes.EV_KEY and event.code in button_map:
+                    virtual_input.write(ecodes.EV_KEY, button_map[event.code], int(bool(event.value)))
+                    virtual_input.syn()
+                elif event.type == ecodes.EV_ABS:
+                    if event.code in axes[device.path]:
+                        axes[device.path][event.code] = normalized(device, event.code, event.value)
+                    elif event.code == ecodes.ABS_HAT0X and event.value:
+                        key = ecodes.KEY_RIGHT if event.value > 0 else ecodes.KEY_LEFT
+                        virtual_input.write(ecodes.EV_KEY, key, 1)
+                        virtual_input.write(ecodes.EV_KEY, key, 0)
+                        virtual_input.syn()
+                    elif event.code == ecodes.ABS_HAT0Y and event.value:
+                        key = ecodes.KEY_DOWN if event.value > 0 else ecodes.KEY_UP
+                        virtual_input.write(ecodes.EV_KEY, key, 1)
+                        virtual_input.write(ecodes.EV_KEY, key, 0)
+                        virtual_input.syn()
+        except OSError:
+            devices.pop(device.path, None)
+            axes.pop(device.path, None)
+    for state in axes.values():
+        x_axis = state[ecodes.ABS_X]
+        y_axis = state[ecodes.ABS_Y]
+        dx = int(math.copysign(abs(x_axis) ** 1.5 * 18, x_axis))
+        dy = int(math.copysign(abs(y_axis) ** 1.5 * 18, y_axis))
+        wheel = int(-state[ecodes.ABS_RY] * 2)
+        if dx or dy or wheel:
+            if dx:
+                virtual_input.write(ecodes.EV_REL, ecodes.REL_X, dx)
+            if dy:
+                virtual_input.write(ecodes.EV_REL, ecodes.REL_Y, dy)
+            if wheel:
+                virtual_input.write(ecodes.EV_REL, ecodes.REL_WHEEL, wheel)
+            virtual_input.syn()

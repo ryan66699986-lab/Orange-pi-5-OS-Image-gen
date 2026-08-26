@@ -6,9 +6,9 @@ apt-get install -y --no-install-recommends \
   build-essential cmake ninja-build pkg-config git nasm \
   libusb-1.0-0-dev libhidapi-dev libsamplerate0-dev \
   libspeex-dev libspeexdsp-dev libminizip-dev libsdl3-dev \
-  libfreetype6-dev libgl1-mesa-dev libglu1-mesa-dev \
+  libfreetype-dev libgl1-mesa-dev libglu1-mesa-dev \
   zlib1g-dev binutils-dev qt6-base-dev qt6-websockets-dev \
-  libqt6svg6-dev libvulkan-dev
+  qt6-svg-dev libvulkan-dev
 git init /src
 git -C /src remote add origin https://github.com/Rosalie241/RMG.git
 git_net -C /src fetch --depth=1 origin "$RMG_COMMIT"

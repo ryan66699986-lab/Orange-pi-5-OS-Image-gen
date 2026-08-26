@@ -4,7 +4,7 @@ source /arm64-common.sh
 apt_prepare
 apt-get install -y --no-install-recommends \
   build-essential pkg-config python3 qt6-base-dev qt6-declarative-dev \
-  libqt6svg6-dev qt6-wayland \
+  qt6-svg-dev qt6-wayland \
   libegl1-mesa-dev libgl1-mesa-dev libopus-dev \
   libsdl2-dev libsdl2-ttf-dev libssl-dev \
   libva-dev libvdpau-dev libxkbcommon-dev \
@@ -46,8 +46,7 @@ for pc in libavcodec libavutil libswscale; do
   }
 done
 
-# Emit an unambiguous positive hardware-decoder record. The session acceptance
-# check uses this message together with Moonlight's stream-resolution record.
+# Emit an unambiguous hardware-decoder record for on-device diagnostics.
 SESSION_CPP=/src/app/streaming/session.cpp
 [[ "$(grep -Fc '"FFmpeg-based video decoder chosen"' "$SESSION_CPP")" -eq 1 ]] || {
   echo "Pinned Moonlight decoder log statement changed" >&2

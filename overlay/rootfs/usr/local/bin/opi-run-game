@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+pidfile="${runtime}/opi-current-game.pid"
+setsid "$@" &
+game_pid=$!
+printf '%s\n' "${game_pid}" > "${pidfile}"
+trap 'rm -f "${pidfile}"' EXIT
+wait "${game_pid}"

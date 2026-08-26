@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+import glob
+import fcntl
+import os
+import select
+import signal
+import time
+
+from evdev import InputDevice, ecodes
+
+lock_path = f"/run/user/{os.getuid()}/opi-game-exit-hotkey.lock"
+lock_file = open(lock_path, "w", encoding="ascii")
+try:
+    fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except BlockingIOError:
+    raise SystemExit(0)
+
+devices = {}
+pressed = {}
+last_scan = 0.0
+
+
+def scan():
+    global last_scan
+    last_scan = time.monotonic()
+    current = set(glob.glob("/dev/input/event*"))
+    for path in list(devices):
+        if path not in current:
+            devices[path].close()
+            devices.pop(path, None)
+            pressed.pop(path, None)
+    for path in current:
+        if path in devices:
+            continue
+        try:
+            device = InputDevice(path)
+            keys = set(device.capabilities().get(ecodes.EV_KEY, []))
+            if ecodes.BTN_START in keys and (ecodes.BTN_MODE in keys or ecodes.BTN_SELECT in keys):
+                devices[path] = device
+                pressed[path] = set()
+            else:
+                device.close()
+        except OSError:
+            pass
+
+
+def exit_game():
+    pidfile = f"/run/user/{os.getuid()}/opi-current-game.pid"
+    try:
+        with open(pidfile, encoding="ascii") as handle:
+            pid = int(handle.read().strip())
+        os.killpg(pid, signal.SIGTERM)
+    except (OSError, ValueError):
+        pass
+
+
+while True:
+    if time.monotonic() - last_scan > 2:
+        scan()
+    ready, _, _ = select.select(list(devices.values()), [], [], 0.5)
+    for device in ready:
+        try:
+            for event in device.read():
+                if event.type != ecodes.EV_KEY:
+                    continue
+                state = pressed[device.path]
+                if event.value:
+                    state.add(event.code)
+                else:
+                    state.discard(event.code)
+                if ecodes.BTN_START in state and (ecodes.BTN_MODE in state or ecodes.BTN_SELECT in state):
+                    exit_game()
+                    state.clear()
+        except OSError:
+            devices.pop(device.path, None)
+            pressed.pop(device.path, None)

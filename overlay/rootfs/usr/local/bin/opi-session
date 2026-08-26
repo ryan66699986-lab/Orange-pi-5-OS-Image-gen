@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+export SDL_AUDIODRIVER=pipewire
+export SDL_VIDEODRIVER='wayland,x11'
+export QT_QPA_PLATFORM='wayland;xcb'
+export MOZ_ENABLE_WAYLAND=1
+
+start_osk() {
+    gamepad-osk --daemon --config /etc/gamepad-osk/config >/dev/null 2>&1 &
+}
+
+labwc_startup() {
+    swaybg -c '#20242b' >/dev/null 2>&1 &
+    waybar >/dev/null 2>&1 &
+    nm-applet --indicator >/dev/null 2>&1 &
+    blueman-applet >/dev/null 2>&1 &
+    mako >/dev/null 2>&1 &
+    udiskie --automount --notify >/dev/null 2>&1 &
+    start_osk
+    opi-game-exit-hotkey >/dev/null 2>&1 &
+    if [[ "${OPI_DIRECT_GAMING:-0}" != 1 ]]; then
+        opi-controller-nav >/dev/null 2>&1 &
+    fi
+    opi-audio-hdmi-default >/dev/null 2>&1 &
+    while [[ -e "${HOME}/.config/opi/password-setup-required" ]]; do
+        foot -F -e opi-first-boot || true
+    done
+    [[ "${OPI_DIRECT_GAMING:-0}" == 1 ]] && es-de &
+}
+
+desktop() {
+    export XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=labwc XDG_CURRENT_DESKTOP=labwc
+    exec labwc -s 'opi-session labwc-startup'
+}
+
+direct() {
+    export OPI_DIRECT_GAMING=1
+    desktop
+}
+
+gamescope_client() {
+    start_osk
+    osk_pid=$!
+    opi-game-exit-hotkey >/dev/null 2>&1 &
+    hotkey_pid=$!
+    trap 'kill "${osk_pid}" "${hotkey_pid}" 2>/dev/null || true' EXIT INT TERM
+    opi-audio-hdmi-default >/dev/null 2>&1 &
+    case "${1:-}" in
+        first-boot) foot -F -e opi-first-boot ;;
+        es-de) es-de ;;
+        *) exit 2 ;;
+    esac
+}
+
+gaming() {
+    export XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=opi-gaming XDG_CURRENT_DESKTOP=gamescope
+    gamescope_args=(-f)
+    if command -v edid-decode >/dev/null && gamescope --help 2>&1 | grep -q -- '--hdr-enabled'; then
+        for edid in /sys/class/drm/card*-*/edid; do
+            [[ -s "${edid}" ]] || continue
+            if edid-decode "${edid}" 2>/dev/null | grep -q 'HDR Static Metadata'; then
+                gamescope_args+=(--hdr-enabled)
+                break
+            fi
+        done
+    fi
+    while [[ -e "${HOME}/.config/opi/password-setup-required" ]]; do
+        gamescope "${gamescope_args[@]}" -- opi-session gamescope-client first-boot || { direct; return; }
+    done
+    if gamescope "${gamescope_args[@]}" -- opi-session gamescope-client es-de; then
+        desktop
+    fi
+    direct
+}
+
+set_mode() {
+    case "${1:-}" in gaming|direct|desktop) ;; *) exit 2 ;; esac
+    printf '%s\n' "$1" > /etc/opi/session-mode
+    rm -f /run/greetd-opi-initial
+    systemctl --no-block restart greetd
+}
+
+case "${1:-}" in
+    gaming) gaming ;;
+    gamescope-client) gamescope_client "${2:-}" ;;
+    desktop) desktop ;;
+    direct) direct ;;
+    labwc-startup) labwc_startup ;;
+    dispatch)
+        case "$(cat /etc/opi/session-mode 2>/dev/null || echo gaming)" in
+            desktop) desktop ;; direct) direct ;; *) gaming ;;
+        esac
+        ;;
+    set) set_mode "${2:-}" ;;
+    *) echo 'Usage: opi-session gaming|desktop|direct|dispatch|set MODE' >&2; exit 2 ;;
+esac
