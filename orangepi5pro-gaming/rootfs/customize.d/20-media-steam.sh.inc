@@ -182,5 +182,5 @@ mkdir -p "$HOME/.steam/root/compatibilitytools.d"
 tar -xzf "$archive" -C "$HOME/.steam/root/compatibilitytools.d"
 EOF
 chmod 0755 /usr/local/bin/install-ge-proton-aarch64
-if [[ -f /opt/opi-seed/steam-arm64.zip ]]; then sudo -u ryan -H /usr/local/bin/steam-arm64-bootstrap || true; fi
-if [[ -f /opt/opi-seed/ge-proton-aarch64.tar.gz ]]; then sudo -u ryan -H /usr/local/bin/install-ge-proton-aarch64 || true; fi
+if [[ -f /opt/opi-seed/steam-arm64.zip ]]; then runuser -u ryan -- env HOME=/home/ryan USER=ryan LOGNAME=ryan /usr/local/bin/steam-arm64-bootstrap || true; fi
+if [[ -f /opt/opi-seed/ge-proton-aarch64.tar.gz ]]; then runuser -u ryan -- env HOME=/home/ryan USER=ryan LOGNAME=ryan /usr/local/bin/install-ge-proton-aarch64 || true; fi

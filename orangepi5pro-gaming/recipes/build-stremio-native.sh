@@ -164,6 +164,13 @@ install -m644 /stremio/data/icons/com.stremio.Stremio.svg \
   /out/rootfs/usr/share/icons/hicolor/scalable/apps/com.stremio.Stremio.svg
 install -m644 /stremio/data/com.stremio.Stremio.desktop \
   /out/rootfs/usr/share/applications/com.stremio.Stremio.desktop
+sed -Ei 's/^Categories=.*/Categories=AudioVideo;Video;Player;/' \
+  /out/rootfs/usr/share/applications/com.stremio.Stremio.desktop
+grep -qx 'Categories=AudioVideo;Video;Player;' \
+  /out/rootfs/usr/share/applications/com.stremio.Stremio.desktop || {
+  echo "Stremio desktop categories were not normalized" >&2
+  exit 1
+}
 install -m644 /stremio/data/com.stremio.Stremio.metainfo.xml \
   /out/rootfs/usr/share/metainfo/com.stremio.Stremio.metainfo.xml
 install -m644 /stremio/data/com.stremio.Stremio.gschema.xml \

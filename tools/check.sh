@@ -193,6 +193,11 @@ for pkg in libsdl3-0 libsdl3-ttf0; do
   grep -qx "$pkg" "$PROFILE/recipes/build-gamepad-osk.sh"
   grep -Fq "$pkg" "$PROFILE/stages/33-runtime-closure.sh"
 done
+grep -qx 'libglew2.2' "$PROFILE/packages/base.txt"
+grep -qx 'libglew2.2' "$PROFILE/recipes/build-ppsspp.sh"
+grep -Fq 'PPSSPP runtime manifest lacks libglew2.2' "$PROFILE/recipes/build-ppsspp.sh"
+grep -Fq 'PPSSPP build artifact does not resolve libGLEW.so.2.2' "$PROFILE/recipes/build-ppsspp.sh"
+grep -Fq 'PPSSPP does not resolve libGLEW.so.2.2 in merged runtime preflight' "$PROFILE/stages/33-runtime-closure.sh"
 grep -Fq 'canonical="$(readlink -f "$lib"' "$PROFILE/recipes/arm64-common.sh"
 grep -Fq 'dpkg-query -S "$canonical"' "$PROFILE/recipes/arm64-common.sh"
 grep -q '^nvme-cli$' "$PROFILE/packages/base.txt"
@@ -307,6 +312,13 @@ grep -Fq '/usr/lib/aarch64-linux-gnu/libQt6QuickControls2.so.6' "$PROFILE/stages
 grep -Fq '/usr/lib/aarch64-linux-gnu/libSDL3.so.0' "$PROFILE/stages/51-offline-image-qa.sh"
 grep -Fq '/usr/lib/aarch64-linux-gnu/libSDL3_ttf.so.0' "$PROFILE/stages/51-offline-image-qa.sh"
 grep -Fq 'gamepad-osk runtime link is missing' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq 'PPSSPP GLEW runtime link is missing' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq '/usr/lib/aarch64-linux-gnu/libGLEW.so.2.2' "$PROFILE/stages/51-offline-image-qa.sh"
+grep -Fq 'libglew2.2 mesa-vulkan-drivers' "$PROFILE/stages/51-offline-image-qa.sh"
+grep -Fq 'Categories=AudioVideo;Video;Player;' "$PROFILE/recipes/build-stremio-native.sh"
+! grep -Fq 'Categories=Utility;AudioVideo;Video;Player;' "$PROFILE/recipes/build-stremio-native.sh"
+grep -Fq 'runuser -u ryan -- env HOME=/home/ryan USER=ryan LOGNAME=ryan' "$PROFILE/rootfs/customize.d/20-media-steam.sh.inc"
+! grep -Fq 'sudo -u ryan' "$PROFILE/rootfs/customize.d/20-media-steam.sh.inc"
 grep -Fq 'Built Moonlight commit differs from source lock' "$PROFILE/stages/31-native-artifacts.sh"
 grep -Eq '^DUCK_RELEASE_ID=[0-9]+$' "$PROFILE/sources.env"
 grep -Eq '^DUCK_ARM64_SHA256=[0-9a-f]{64}$' "$PROFILE/sources.env"
@@ -334,7 +346,7 @@ for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
   grep -Fq "$unit" "$PROFILE/stages/51-offline-image-qa.sh"
 done
 grep -Fq 'branches: [main]' "$ROOT/.github/workflows/ci.yml"
-grep -qx '3.22' "$ROOT/VERSION"
+grep -qx '3.23' "$ROOT/VERSION"
 ! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/stages/00-common.sh"
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/recipes/arm64-common.sh"
@@ -446,6 +458,7 @@ required = {
     "docs/VALIDATION.md",
     "docs/VALIDATION-RECORD-TEMPLATE.md",
     "docs/V3.22-AUDIT.md",
+    "docs/V3.23-AUDIT.md",
 }
 missing_required = sorted(path for path in required if not (root / path).is_file())
 if missing_required:

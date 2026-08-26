@@ -37,7 +37,7 @@ Do not attach plaintext passwords, tokens, private ROM/BIOS paths or other crede
 | Source tag/commit/asset missing | Pin moved, was mistyped or upstream changed | Review upstream; update pin/compatibility assertion deliberately |
 | Package solver fails | Package renamed/removed or wrong repository/component | Confirm Resolute ARM64 package name; update manifests and target gates together |
 | `gcc`/header/CMake policy failure | Isolated build dependency or upstream compatibility issue | Fix the owning recipe and add an early/static regression |
-| `ldd` reports `not found` in merged preflight or target | Build-container dependency was not packaged for runtime | Add the runtime package/artifact manifest and target/offline assertions; do not bypass the V3.22 core/AppImage closure gate |
+| `ldd` reports `not found` in merged preflight or target | Build-container dependency was not packaged for runtime | Add an explicit base and artifact runtime declaration plus artifact, merged-root, target and offline assertions; do not rely on an indirect package dependency |
 | Wrong `/opt/opi/media` linkage | Application silently resolved distro FFmpeg/mpv | Fix pkg-config/library/RUNPATH; never accept generic linkage |
 | Target-root gate fails | Assembled image violates contract, or validator is wrong | Inspect actual target data and upstream format before changing either |
 | Offline image QA fails | Raw image differs from assembled expectations | Treat as release-blocking; do not distribute the image |

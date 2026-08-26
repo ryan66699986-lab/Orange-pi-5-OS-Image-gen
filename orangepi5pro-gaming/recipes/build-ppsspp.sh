@@ -40,4 +40,18 @@ WRAPPER
 chmod 0755 /out/rootfs/usr/local/bin/ppsspp
 assert_aarch64_tree /out/rootfs/opt/opi/apps/ppsspp
 collect_runtime_packages /out/rootfs/opt/opi/apps/ppsspp /out/runtime-packages.txt
+cat >> /out/runtime-packages.txt <<'RUNTIME'
+libglew2.2
+RUNTIME
+sort -u -o /out/runtime-packages.txt /out/runtime-packages.txt
+grep -qx 'libglew2.2' /out/runtime-packages.txt || {
+  echo "PPSSPP runtime manifest lacks libglew2.2" >&2
+  exit 1
+}
+ldd "$BIN" > /tmp/ppsspp-ldd.txt
+grep -Eq 'libGLEW[.]so[.]2[.]2[[:space:]]+=>[[:space:]]+/' /tmp/ppsspp-ldd.txt || {
+  cat /tmp/ppsspp-ldd.txt >&2
+  echo "PPSSPP build artifact does not resolve libGLEW.so.2.2" >&2
+  exit 1
+}
 git -C /src rev-parse HEAD > /out/source.commit

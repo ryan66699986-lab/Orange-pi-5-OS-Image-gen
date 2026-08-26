@@ -45,6 +45,7 @@ libegl1
 libgl1
 libgles2
 libglib2.0-bin
+libglew2.2
 libhidapi-hidraw0
 libhidapi-libusb0
 libqt6quickcontrols2-6

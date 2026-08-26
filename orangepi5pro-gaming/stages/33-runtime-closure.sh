@@ -12,12 +12,19 @@ apt-get install -y --no-install-recommends "${required_packages[@]}" >/dev/null
 cp -a /overlay/. /
 ldconfig
 
-for pkg in libsdl3-0 libsdl3-ttf0; do
+for pkg in libsdl3-0 libsdl3-ttf0 libglew2.2; do
   dpkg-query -W -f='${Status}\n' "$pkg" 2>/dev/null | grep -qx 'install ok installed' || {
-    echo "Merged runtime preflight lacks mandatory gamepad-osk package: $pkg" >&2
+    echo "Merged runtime preflight lacks mandatory explicit runtime package: $pkg" >&2
     exit 1
   }
 done
+
+LD_LIBRARY_PATH=/opt/opi/media/lib:/opt/opi/media/lib64 ldd /opt/opi/apps/ppsspp/PPSSPPSDL > /tmp/ppsspp-ldd.txt
+grep -Eq 'libGLEW[.]so[.]2[.]2[[:space:]]+=>[[:space:]]+/' /tmp/ppsspp-ldd.txt || {
+  cat /tmp/ppsspp-ldd.txt >&2
+  echo "PPSSPP does not resolve libGLEW.so.2.2 in merged runtime preflight" >&2
+  exit 1
+}
 
 critical=(
   /usr/local/bin/gamepad-osk

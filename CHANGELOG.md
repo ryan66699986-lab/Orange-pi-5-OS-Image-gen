@@ -1,6 +1,17 @@
 # Changelog
 
-## V3.22 — current development generation
+## V3.23 — current development generation
+
+- Audited all 48,650 lines of the V3.22 log. Every source, package, browser, kernel and executable preflight passed; all ten native ARM64 artifacts built; Azahar passed 64/64 tests; Steam and GE-Proton staged; the Armbian kernel and root filesystem built; and customization reached the final target-root ELF gate.
+- Fixed the terminal PPSSPP failure: `PPSSPPSDL` requires `libGLEW.so.2.2`, but the target did not contain `libglew2.2`. The clean merged-runtime container happened to receive GLEW through an indirect dependency path, so its successful closure check did not prove the same package selection in Armbian's populated root.
+- Made `libglew2.2` an explicit base-image and PPSSPP-artifact runtime dependency. The PPSSPP recipe now proves its manifest and link immediately; the merged ARM64 root, target root and completed raw image independently require the package, library and resolved SONAME.
+- Replaced best-effort Steam seed calls through `sudo` with `runuser` and an explicit user environment, eliminating container-hostname lookup warnings without weakening the experimental/non-blocking Steam policy.
+- Normalized Stremio's desktop categories to one freedesktop main category, eliminating the duplicate-menu validation hint while retaining Audio/Video, Video and Player classification.
+- Retained every V3.22 assurance gate, native Stremio with mandatory real V4L2 Request proof, the controller-first stack, fresh workspaces and the read-only NVMe development policy.
+
+V3.23 is the next test generation, not a release declaration. A completed image and all physical-board gates remain required.
+
+## V3.22
 
 - Performed a whole-image audit after V3.21, including every supplied build log, package manifest, kernel override, artifact recipe, target-root gate, offline-image gate and runtime acceptance helper.
 - Made PanVK non-optional by installing `mesa-vulkan-drivers`, requiring the Panfrost Vulkan ICD in the target and raw image, and adding `opi-gpu-check` to reject llvmpipe/lavapipe or a Vulkan device that does not identify the RK3588 Mali/PanVK stack.

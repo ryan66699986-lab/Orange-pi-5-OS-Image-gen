@@ -13,7 +13,7 @@ This is not a generic Armbian remix. It is an appliance-style image with explici
 | Item | Current state |
 |---|---|
 | Profile | `orangepi5pro-gaming` |
-| Project generation | V3.22 |
+| Project generation | V3.23 |
 | Board | Orange Pi 5 Pro, RK3588S, 4 GB |
 | Base | Armbian build framework |
 | Distribution | Ubuntu 26.04 Resolute |
@@ -26,7 +26,7 @@ This is not a generic Armbian remix. It is an appliance-style image with explici
 | Audio | PipeWire HDMI/DisplayPort plus Bluetooth; HDMI selected once on first successful session, later user choices preserved |
 | Storage policy | SD boot/current root only during testing; final plan is SD boot + Btrfs NVMe root, later eMMC boot + Btrfs NVMe root |
 | Browser | Brave default, Firefox alternative; gamepad mouse/OSK available |
-| Status | active development; V3.22 closes GPU, AppImage, firmware, CEC, audio-policy, display-selection and filesystem audit gaps |
+| Status | active development; V3.23 explicitly closes PPSSPP's GLEW runtime across every image-validation layer |
 
 ## Repository layout
 
@@ -81,7 +81,8 @@ The builder never writes to the Orange Pi's installed NVMe. During image develop
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Failure triage for builds and runtime faults |
 | [`docs/REFERENCES.md`](docs/REFERENCES.md) | Curated primary upstream documentation |
 | [`docs/STATUS.md`](docs/STATUS.md) | Current generation and outstanding proof |
-| [`docs/V3.22-AUDIT.md`](docs/V3.22-AUDIT.md) | Most recent whole-image audit and V3.22 closure record |
+| [`docs/V3.23-AUDIT.md`](docs/V3.23-AUDIT.md) | Most recent full-log audit and V3.23 closure record |
+| [`docs/V3.22-AUDIT.md`](docs/V3.22-AUDIT.md) | Prior whole-image audit and V3.22 assurance expansion |
 | [`SECURITY.md`](SECURITY.md) | Security model and responsible reporting |
 
 ## Development workflow
