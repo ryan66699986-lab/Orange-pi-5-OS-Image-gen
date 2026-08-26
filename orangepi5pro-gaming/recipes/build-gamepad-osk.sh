@@ -30,3 +30,11 @@ else
 fi
 assert_aarch64_tree /out/rootfs
 collect_runtime_packages /out/rootfs /out/runtime-packages.txt
+cat >> /out/runtime-packages.txt <<'RUNTIME'
+libsdl3-0
+libsdl3-ttf0
+RUNTIME
+sort -u -o /out/runtime-packages.txt /out/runtime-packages.txt
+for pkg in libsdl3-0 libsdl3-ttf0; do
+  grep -qx "$pkg" /out/runtime-packages.txt || { echo "gamepad-osk runtime manifest lacks $pkg" >&2; exit 1; }
+done
