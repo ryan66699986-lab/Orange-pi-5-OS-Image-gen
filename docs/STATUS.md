@@ -1,8 +1,12 @@
 # Project status
 
-## Current generation: V3.20
+## Current generation: V3.21
 
-V3.20 is the active build under test.
+V3.21 is the active build under test.
+
+V3.20 ran for 48,431 log lines and passed every early source, package, browser, kernel and executable preflight. All ten native ARM64 artifact builds completed, including the dedicated native Stremio and Moonlight media paths; Azahar passed all 64 tests; Steam and GE-Proton staged; and artifact collision/package-solvability checks passed. Armbian built the kernel/root filesystem and reached the final target-root ELF gate. That gate found `gamepad-osk` linked to `libSDL3_ttf.so.0`, while the final target contained `libSDL3.so.0` but not the SDL3 TTF runtime. The isolated build's development package had pulled in `libsdl3-ttf0`, but runtime inference did not retain it in the generated target manifest.
+
+V3.21 declares `libsdl3-0` and `libsdl3-ttf0` in both the base image and gamepad artifact runtime manifests. It also adds a clean ARM64 merged-runtime closure stage before Armbian: install the complete generated target package set, overlay every built artifact, run `ldconfig`, scan critical custom ELF files, and require both SDL3 links for `gamepad-osk`. The final target-root and raw-image gates independently require the packages, files and resolved links.
 
 V3.19 ran for 48,386 log lines and reached final target-root customization. It proved the V3.19 Brave-key correction, built all ten native ARM64 artifacts, passed Azahar's 64 tests, built the Armbian kernel/root filesystem and installed V3.18's previously missing Moonlight libraries in the target. It then stopped at the controller-mouse assertion even though the pinned upstream `gamepad-osk` configuration already contained `enabled = true` with an inline explanatory comment. The old `awk` expression rejected any text after `true`. V3.20 normalizes the target setting and validates both the normalized and upstream-commented forms in the target root and completed image.
 
@@ -39,4 +43,4 @@ A successful host build and offline image QA are necessary but not sufficient. H
 - a real Moonlight stream at the display mode detected at launch, using the hardware-accelerated FFmpeg decoder; a 4K display must therefore prove a 4K stream;
 - memory/thermal behavior on the 4 GB board.
 
-Until those pass, V3.20 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.
+Until those pass, V3.21 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.
