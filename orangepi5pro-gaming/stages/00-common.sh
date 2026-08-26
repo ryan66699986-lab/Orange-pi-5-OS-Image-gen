@@ -30,11 +30,21 @@ git_remote_ref() {
 }
 
 remote_tag_commit() {
-    local repo_url="$1" tag="$2" out commit peeled
-    out="$(git_remote_ref "$repo_url" "refs/tags/${tag}")" || return 1
-    commit="$(awk 'NR==1 {print $1}' <<<"$out")"
+    local repo_url="$1" tag="$2" out commit peeled attempt rc
+    for attempt in 1 2 3 4; do
+        set +e
+        out="$(GIT_NETWORK_TIMEOUT=90s git_net ls-remote "$repo_url" \
+          "refs/tags/${tag}" "refs/tags/${tag}^{}" 2>"$WORK/git-ls-remote.err")"
+        rc=$?
+        set -e
+        (( rc == 0 )) && break
+        warn "git tag lookup failed for ${repo_url} ${tag} (${attempt}/4): $(tr '\n' ' ' < "$WORK/git-ls-remote.err")"
+        sleep $((attempt * 2))
+    done
+    (( rc == 0 )) || return 1
+    commit="$(awk -v ref="refs/tags/${tag}" '$2==ref {print $1; exit}' <<<"$out")"
+    peeled="$(awk -v ref="refs/tags/${tag}^{}" '$2==ref {print $1; exit}' <<<"$out")"
     [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || return 1
-    peeled="$(GIT_NETWORK_TIMEOUT=90s git_net ls-remote "$repo_url" "refs/tags/${tag}^{}" 2>/dev/null | awk 'NR==1 {print $1}')"
     if [[ "$peeled" =~ ^[0-9a-f]{40}$ ]]; then commit="$peeled"; fi
     printf '%s\n' "$commit"
 }

@@ -1,82 +1,32 @@
-say "Input-keyed ARM64 build-dependency image"
-BUILDER_CACHE_SCHEMA="v1-ubuntu26.04-arm64-ccache"
+say "Content-addressed ARM64 native-build base"
+
+# Keep the ARM64 base under a private content-addressed tag. Later stages pull
+# an amd64 Ubuntu image for AppImage extraction, so using ubuntu:26.04 directly
+# for native builds would allow the host tag to change architecture mid-build.
+# Dependencies are deliberately installed per recipe: their complete union is
+# not solvable because upstreams require conflicting curl development providers.
 docker pull --platform linux/arm64 ubuntu:26.04 >/dev/null
 UBUNTU_ARM64_IMAGE_ID="$(docker image inspect ubuntu:26.04 --format '{{.Id}}')"
+UBUNTU_ARM64_ARCH="$(docker image inspect ubuntu:26.04 --format '{{.Architecture}}')"
 [[ "$UBUNTU_ARM64_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] || die "Could not resolve Ubuntu 26.04 ARM64 image ID"
-BUILDER_IMAGE_KEY="$({
-    printf '%s\n%s\n' "$BUILDER_CACHE_SCHEMA" "$UBUNTU_ARM64_IMAGE_ID"
-    sha256sum "$WORK/build-package-groups.txt"
-} | sha256sum | awk '{print $1}')"
-BUILDER_IMAGE="${BUILDER_IMAGE_REPOSITORY}:${BUILDER_IMAGE_KEY:0:24}"
+[[ "$UBUNTU_ARM64_ARCH" == arm64 ]] || die "Ubuntu 26.04 native-build base is not ARM64: ${UBUNTU_ARM64_ARCH}"
 
-verify_builder_image() {
-    docker run --rm --platform linux/arm64 \
-      -v "$WORK/build-package-groups.txt:/build-package-groups.txt:ro" \
-      "$BUILDER_IMAGE" bash -seu <<'BUILDER_DEPS'
-[[ "$(dpkg --print-architecture)" == arm64 ]]
-command -v ccache >/dev/null
-required=(ca-certificates git curl file binutils ccache)
-while IFS='|' read -r name packages; do
-  [[ -n "$name" ]] || continue
-  read -r -a group <<<"$packages"
-  required+=("${group[@]}")
-done < /build-package-groups.txt
-mapfile -t required < <(printf '%s\n' "${required[@]}" | sed '/^$/d' | sort -u)
-for pkg in "${required[@]}"; do
-  dpkg-query -W -f='${Status}\n' "$pkg" 2>/dev/null | grep -qx 'install ok installed' || {
-    echo "Cached ARM64 builder dependency is missing: $pkg" >&2
-    exit 1
-  }
-done
-BUILDER_DEPS
-}
+BUILDER_IMAGE="${BUILDER_IMAGE_REPOSITORY}:${UBUNTU_ARM64_IMAGE_ID#sha256:}"
+BUILDER_IMAGE="${BUILDER_IMAGE:0:${#BUILDER_IMAGE_REPOSITORY}+1+24}"
+docker tag "$UBUNTU_ARM64_IMAGE_ID" "$BUILDER_IMAGE"
+[[ "$(docker image inspect "$BUILDER_IMAGE" --format '{{.Id}}')" == "$UBUNTU_ARM64_IMAGE_ID" ]] || die "Private ARM64 build-base tag changed image identity"
+[[ "$(docker image inspect "$BUILDER_IMAGE" --format '{{.Architecture}}')" == arm64 ]] || die "Private native-build base tag is not ARM64"
 
-if docker image inspect "$BUILDER_IMAGE" >/dev/null 2>&1; then
-    [[ "$(docker image inspect "$BUILDER_IMAGE" --format '{{ index .Config.Labels "org.opi5pro.builder-cache-key" }}')" == "$BUILDER_IMAGE_KEY" ]] || die "Builder dependency image label does not match its content key"
-    verify_builder_image || die "Cached ARM64 build-dependency image failed verification"
-    good "Verified ARM64 build-dependency cache hit: ${BUILDER_IMAGE}"
-else
-    CACHE_CONTAINER="opi5pro-builddeps-${PROFILE_VERSION//./-}-$$"
-    docker rm -f "$CACHE_CONTAINER" >/dev/null 2>&1 || true
-    if ! docker run --name "$CACHE_CONTAINER" --platform linux/arm64 \
-      -v "$WORK/build-package-groups.txt:/build-package-groups.txt:ro" \
-      ubuntu:26.04 bash -seu <<'BUILDER_DEPS'
-export DEBIAN_FRONTEND=noninteractive
-sed -Ei 's/^Components:.*/Components: main restricted universe multiverse/' \
-  /etc/apt/sources.list.d/ubuntu.sources
-required=(ca-certificates git curl file binutils ccache)
-while IFS='|' read -r name packages; do
-  [[ -n "$name" ]] || continue
-  read -r -a group <<<"$packages"
-  required+=("${group[@]}")
-done < /build-package-groups.txt
-mapfile -t required < <(printf '%s\n' "${required[@]}" | sed '/^$/d' | sort -u)
-apt-get update
-apt-get install -y --no-install-recommends "${required[@]}"
-for pkg in "${required[@]}"; do
-  dpkg-query -W -f='${Status}\n' "$pkg" 2>/dev/null | grep -qx 'install ok installed' || {
-    echo "New ARM64 builder dependency is missing: $pkg" >&2
-    exit 1
-  }
-done
-BUILDER_DEPS
-    then
-        docker rm -f "$CACHE_CONTAINER" >/dev/null 2>&1 || true
-        die "Unable to construct ARM64 build-dependency image"
-    fi
-    if ! docker commit \
-      --change "LABEL org.opi5pro.builder-cache-key=${BUILDER_IMAGE_KEY}" \
-      --change "LABEL org.opi5pro.builder-cache-schema=${BUILDER_CACHE_SCHEMA}" \
-      "$CACHE_CONTAINER" "$BUILDER_IMAGE" >/dev/null; then
-        docker rm -f "$CACHE_CONTAINER" >/dev/null 2>&1 || true
-        die "Unable to commit ARM64 build-dependency image"
-    fi
-    docker rm -f "$CACHE_CONTAINER" >/dev/null
-    verify_builder_image || die "New ARM64 build-dependency image failed verification"
-    good "Created verified ARM64 build-dependency image: ${BUILDER_IMAGE}"
-fi
+BASE_RECEIPT="$(docker run --rm --platform linux/arm64 "$BUILDER_IMAGE" \
+  bash -ceu 'printf "schema=v2-plain-arm64-base\narchitecture=%s\n" "$(dpkg --print-architecture)"')"
+grep -qx 'schema=v2-plain-arm64-base' <<<"$BASE_RECEIPT" || die "ARM64 build-base verification receipt is missing"
+grep -qx 'architecture=arm64' <<<"$BASE_RECEIPT" || die "ARM64 build-base container reports the wrong architecture"
 
-printf 'builder_image=%s\nbuilder_cache_key=%s\nubuntu_arm64_image_id=%s\n' \
-  "$BUILDER_IMAGE" "$BUILDER_IMAGE_KEY" "$UBUNTU_ARM64_IMAGE_ID" \
-  > "$WORK/builder-cache.meta"
+printf 'builder_image=%s\nubuntu_arm64_image_id=%s\narchitecture=%s\nschema=v2-plain-arm64-base\n' \
+  "$BUILDER_IMAGE" "$UBUNTU_ARM64_IMAGE_ID" "$UBUNTU_ARM64_ARCH" \
+  > "$WORK/builder-base.meta"
+jq --arg image_id "$UBUNTU_ARM64_IMAGE_ID" \
+  '.ubuntu_arm64_image_id=$image_id' "$LOCK" > "${LOCK}.tmp"
+mv "${LOCK}.tmp" "$LOCK"
+good "Verified content-addressed ARM64 build base: ${BUILDER_IMAGE}"
 export BUILDER_IMAGE

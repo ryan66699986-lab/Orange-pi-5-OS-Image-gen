@@ -1,6 +1,19 @@
 # Changelog
 
-## V3.26 — current development generation
+## V3.27 — current development generation
+
+- Audited the complete 527-line V3.26 log. The run stopped before native compilation because its Docker heredocs lacked `-i`; the dependency installer and verifier received no program on stdin, committed pristine Ubuntu and falsely reported success. The pre-Armbian runtime-closure stage had the same defect.
+- Removed the union dependency image. Even with stdin repaired, that design would attempt to co-install mutually conflicting `libcurl4-gnutls-dev` and `libcurl4-openssl-dev`. V3.27 keeps one content-addressed ARM64 base while every recipe performs its own isolated, declared APT transaction.
+- Moved runtime closure into a mounted, version-controlled shell program. Its result is accepted only when the host validates the ARM64 marker, minimum core/AppImage dynamic-ELF counts, owning-package count, package-list SHA-256 and exact PASS marker.
+- Made generic ELF validation fail closed: only ELFs with `DT_NEEDED` are passed to `ldd`, and any nonzero `ldd` result or `not found` dependency rejects the build. The final target-root scan uses the same rule.
+- Added negative tests for failed `ldd`, unresolved libraries, unowned libraries, empty/nonexecuted container receipts and missing commands. Static checks reject Docker heredocs without `-i` and prove package-list/recipe parity.
+- Added a real GitHub Actions ARM64/QEMU job that installs common build tools, simulates every dependency group independently and validates a mounted-program receipt.
+- Pinned Armbian commit `28699057f79dfd0c4114d8cf0405ccce0a098d0f`, plus reviewed OpenCode and ARMSX2 ARM64 payload digests.
+- Retained V3.26's appliance scope, all specified emulators, native Stremio/Moonlight hardware-decoding gates, Labwc-only fallback, on-device same-release maintenance, fresh outputs and read-only NVMe policy.
+
+V3.27 is a development generation. CI can prove the build machinery executes and fails correctly, but only a complete image plus physical-board testing can establish release readiness.
+
+## V3.26
 
 - Clarified the product as a personal Orange Pi 5 Pro appliance that should also transfer cleanly to another identical board; retained the complete specified emulator set, Brave plus Firefox, visible experimental Steam, native Stremio hardware decoding and the SD → NVMe → eMMC storage plan.
 - Replaced the overly broad all-disposable build interpretation with a hybrid model: an official origin-checked, connectivity-verified bare Armbian mirror persists, while each attempt creates a new detached checkout and fresh userpatch, rootfs, native artifact and image state.

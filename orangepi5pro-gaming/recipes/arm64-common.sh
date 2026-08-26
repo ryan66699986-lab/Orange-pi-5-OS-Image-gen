@@ -3,26 +3,24 @@ set -Eeuo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 apt_prepare() {
-    if [[ "${OPI_BUILD_DEPS_READY:-0}" == 1 ]]; then
-        for cmd in git curl file readelf ccache; do
-            command -v "$cmd" >/dev/null 2>&1 || {
-                echo "Cached ARM64 builder lacks command: $cmd" >&2
-                return 1
-            }
-        done
-        export PATH="/usr/lib/ccache:${PATH}"
-        ccache --show-config | grep -Eq '^\([^)]*\)[[:space:]]+compiler_check = content$' || {
-            echo "Native compiler cache is not using content verification" >&2
-            return 1
-        }
-        return 0
-    fi
     if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
         sed -Ei 's/^Components:.*/Components: main restricted universe multiverse/' \
             /etc/apt/sources.list.d/ubuntu.sources
     fi
     apt-get update
-    apt-get install -y --no-install-recommends ca-certificates git curl file binutils
+    apt-get install -y --no-install-recommends \
+        ca-certificates git curl file binutils ccache
+    for cmd in git curl file readelf ccache; do
+        command -v "$cmd" >/dev/null 2>&1 || {
+            echo "ARM64 recipe environment lacks command after installation: $cmd" >&2
+            return 1
+        }
+    done
+    export PATH="/usr/lib/ccache:${PATH}"
+    ccache --show-config | grep -Eq '^\([^)]*\)[[:space:]]+compiler_check = content$' || {
+        echo "Native compiler cache is not using content verification" >&2
+        return 1
+    }
 }
 
 git_net() {
@@ -46,9 +44,30 @@ assert_aarch64_tree() {
     (( found == 1 )) || { echo "No ELF found in $root" >&2; return 1; }
 }
 
+elf_has_needed() {
+    local path="$1"
+    file -Lb "$path" 2>/dev/null | grep -q '^ELF' || return 1
+    readelf -d "$path" 2>/dev/null | grep -q '(NEEDED)'
+}
+
+checked_ldd() {
+    local path="$1" library_path="${2:-}" output
+    if ! output="$(LD_LIBRARY_PATH="$library_path" ldd "$path" 2>&1)"; then
+        echo "ldd failed for dynamic ELF: $path" >&2
+        printf '%s\n' "$output" >&2
+        return 1
+    fi
+    if grep -q 'not found' <<<"$output"; then
+        echo "Unresolved shared library in dynamic ELF: $path" >&2
+        printf '%s\n' "$output" >&2
+        return 1
+    fi
+    printf '%s\n' "$output"
+}
+
 collect_runtime_packages() {
     local root="$1" out="$2"
-    local libs pkgs unmapped f desc lib owner canonical
+    local libs pkgs unmapped f lib owner canonical linkage
     libs="$(mktemp)"
     pkgs="$(mktemp)"
     unmapped="$(mktemp)"
@@ -57,14 +76,17 @@ collect_runtime_packages() {
     : > "$unmapped"
 
     while IFS= read -r -d '' f; do
-        desc="$(file -b "$f" 2>/dev/null || true)"
-        [[ "$desc" == ELF* ]] || continue
-        LD_LIBRARY_PATH="${RUNTIME_LIBRARY_PATH:-}" ldd "$f" 2>/dev/null |
-          awk '/=> \// {print $3} /^\// {print $1}' >> "$libs" || true
+        elf_has_needed "$f" || continue
+        if ! linkage="$(checked_ldd "$f" "${RUNTIME_LIBRARY_PATH:-}")"; then
+            rm -f "$libs" "$pkgs" "$unmapped"
+            return 1
+        fi
+        awk '/=> \// {print $3} /^\// {print $1}' <<<"$linkage" >> "$libs"
     done < <(find "$root" -type f -print0)
 
     sort -u "$libs" | while read -r lib; do
         [[ -e "$lib" ]] || continue
+        canonical=""
         owner="$(dpkg-query -S "$lib" 2>/dev/null | head -n1 | awk -F': ' '{pkg=$1; sub(/:[^:]+$/, "", pkg); print pkg}' || true)"
         if [[ -z "$owner" ]]; then
             # ldd may report /lib/... on a merged-/usr system while dpkg owns

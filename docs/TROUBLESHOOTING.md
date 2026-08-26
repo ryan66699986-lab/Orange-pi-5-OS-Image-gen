@@ -48,7 +48,7 @@ Do not attach plaintext passwords, tokens, private ROM/BIOS paths or other crede
 
 ## Cache failures or no speed-up
 
-The cache root defaults to `~/.cache/opi5pro-builder`. It is not a resumable workspace. Relevant log markers are `Verified download cache hit`, `Verified ARM64 build-dependency cache hit`, per-artifact ccache statistics and `TIMING:` rows.
+The cache root defaults to `~/.cache/opi5pro-builder`. It is not a resumable workspace. Relevant log markers are `Verified download cache hit`, `Verified content-addressed ARM64 build base`, per-artifact ccache statistics and `TIMING:` rows. V3.27 intentionally ignores the defective V3.26 `opi5pro/ubuntu-resolute-arm64-builddeps:*` image family.
 
 - If the builder image fails package verification, remove only the exact `opi5pro/ubuntu-resolute-arm64-builddeps:<key>` image reported by the log; the next run reconstructs it from the pulled ARM64 base and package manifest.
 - If a download fails integrity validation, the builder automatically discards only that URL-keyed entry and reacquires it. A pinned SHA mismatch remains fatal.
@@ -57,7 +57,7 @@ The cache root defaults to `~/.cache/opi5pro-builder`. It is not a resumable wor
 - Do not run `docker system prune --volumes` while preserving Armbian compiler caches; Armbian's Docker workflow uses named cache volumes.
 - If the Armbian mirror origin or connectivity check fails, let the builder discard/recreate only `~/.cache/opi5pro-builder/git/armbian-build.git`. Never replace that mirror with a previous failed checkout.
 
-The first V3.25/V3.26 cache-assisted build is expected to populate caches. Use the timing table from the first and next identical-source run before making performance claims.
+The first V3.27 build is expected to populate download/compiler caches and the Armbian mirror. Package installation remains per-recipe for correctness. Use the timing table from the first and next identical-source run before making performance claims.
 
 ## Password prompt problems
 

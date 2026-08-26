@@ -17,8 +17,8 @@ fi
 [[ "$(git -C "$ARMBIAN_MIRROR" config --get remote.origin.url)" == "$ARMBIAN_REPOSITORY" ]] || die "Armbian mirror origin is not the official repository"
 GIT_NETWORK_TIMEOUT=15m git_net -C "$ARMBIAN_MIRROR" remote update --prune
 git -C "$ARMBIAN_MIRROR" fsck --connectivity-only --no-dangling >/dev/null || die "Armbian source mirror failed connectivity verification"
-ARMBIAN_COMMIT="$(git -C "$ARMBIAN_MIRROR" rev-parse refs/heads/main)"
-[[ "$ARMBIAN_COMMIT" =~ ^[0-9a-f]{40}$ ]] || die "Could not resolve Armbian main from the verified mirror"
+[[ "$ARMBIAN_COMMIT" =~ ^[0-9a-f]{40}$ ]] || die "Pinned Armbian commit is malformed"
+git -C "$ARMBIAN_MIRROR" cat-file -e "${ARMBIAN_COMMIT}^{commit}" 2>/dev/null || die "Pinned Armbian commit is absent from the verified mirror: $ARMBIAN_COMMIT"
 say "Fresh Armbian workspace from verified mirror"
 [[ ! -e "$ARMBIAN" ]] || die "Armbian destination unexpectedly exists before clone"
 GIT_NETWORK_TIMEOUT=15m git_net clone --no-local --no-hardlinks "$ARMBIAN_MIRROR" "$ARMBIAN"

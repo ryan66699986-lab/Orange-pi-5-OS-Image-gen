@@ -1,5 +1,6 @@
 accountsservice
 alsa-utils
+binutils
 blueman
 bluez
 btrfs-progs

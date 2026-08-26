@@ -13,7 +13,7 @@ This is not a generic Armbian remix. It is an appliance-style image with explici
 | Item | Current state |
 |---|---|
 | Profile | `orangepi5pro-gaming` |
-| Project generation | V3.26 |
+| Project generation | V3.27 |
 | Board | Orange Pi 5 Pro, RK3588S, 4 GB |
 | Base | Armbian build framework |
 | Distribution | Ubuntu 26.04 Resolute |
@@ -26,7 +26,7 @@ This is not a generic Armbian remix. It is an appliance-style image with explici
 | Audio | PipeWire HDMI/DisplayPort plus Bluetooth; HDMI selected once on first successful session, later user choices preserved |
 | Storage policy | SD boot/current root only during testing; final plan is SD boot + Btrfs NVMe root, later eMMC boot + Btrfs NVMe root |
 | Browser | Brave default, Firefox alternative; gamepad mouse/OSK available |
-| Status | active development; V3.26 adds a hybrid source-mirror/fresh-output build and same-release on-device maintenance |
+| Status | active development; V3.27 repairs container-gate execution and makes ARM64 dependency/ELF proof functional and externally receipted |
 
 ## Repository layout
 
@@ -83,6 +83,7 @@ The builder never writes to the Orange Pi's installed NVMe. During image develop
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Failure triage for builds and runtime faults |
 | [`docs/REFERENCES.md`](docs/REFERENCES.md) | Curated primary upstream documentation |
 | [`docs/STATUS.md`](docs/STATUS.md) | Current generation and outstanding proof |
+| [`docs/V3.27-AUDIT.md`](docs/V3.27-AUDIT.md) | V3.26 failure forensics and systemic container/runtime-closure repair |
 | [`docs/V3.26-AUDIT.md`](docs/V3.26-AUDIT.md) | Scope refinement, hybrid workspace and appliance-maintenance record |
 | [`docs/V3.25-AUDIT.md`](docs/V3.25-AUDIT.md) | Safe build-speed design, trust boundaries and regression evidence |
 | [`docs/V3.24-AUDIT.md`](docs/V3.24-AUDIT.md) | Systemic late-failure audit and V3.24 closure record |

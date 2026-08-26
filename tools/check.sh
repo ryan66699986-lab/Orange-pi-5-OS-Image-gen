@@ -14,6 +14,28 @@ for f in "$PROFILE"/stages/*.sh "$PROFILE"/recipes/*.sh; do
   bash -n "$f"
 done
 
+# Any container whose program arrives on stdin must explicitly keep stdin
+# attached. V3.26 omitted this and Docker silently ran an empty program.
+python3 - "$PROFILE" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+for source in sorted(Path(sys.argv[1]).rglob("*.sh")):
+    lines = source.read_text(encoding="utf-8").splitlines()
+    for index, line in enumerate(lines):
+        if "docker run" not in line:
+            continue
+        command = line
+        cursor = index
+        while cursor + 1 < len(lines) and command.rstrip().endswith("\\"):
+            cursor += 1
+            command += " " + lines[cursor]
+        if "<<" in command and not re.search(r"(?:^|\s)-[^\s]*i[^\s]*(?:\s|$)", command):
+            raise SystemExit(f"{source}:{index + 1}: docker heredoc lacks -i")
+print("Docker stdin-delivery checks: PASS")
+PY
+
 tmpdir="$(mktemp -d)"
 trap 'rm -rf -- "$tmpdir"' EXIT
 cat "$PROFILE"/rootfs/customize.d/*.sh.inc > "$tmpdir/customize-image.sh"
@@ -22,15 +44,7 @@ awk '/<<'\''OFFLINE_QA'\''/{copy=1; next} copy && /^OFFLINE_QA$/{exit} copy{prin
   "$PROFILE/stages/51-offline-image-qa.sh" > "$tmpdir/offline-image-qa.sh"
 [[ -s "$tmpdir/offline-image-qa.sh" ]]
 bash -n "$tmpdir/offline-image-qa.sh"
-awk '/<<'\''RUNTIME_CLOSURE'\''/{copy=1; next} copy && /^RUNTIME_CLOSURE$/{exit} copy{print}' \
-  "$PROFILE/stages/33-runtime-closure.sh" > "$tmpdir/runtime-closure.sh"
-[[ -s "$tmpdir/runtime-closure.sh" ]]
-bash -n "$tmpdir/runtime-closure.sh"
-awk '/<<'\''BUILDER_DEPS'\''/{copy=1; next} copy && /^BUILDER_DEPS$/{copy=0; next} copy{print}' \
-  "$PROFILE/stages/18-builder-dependency-cache.sh" > "$tmpdir/builder-dependency-cache.sh"
-[[ -s "$tmpdir/builder-dependency-cache.sh" ]]
-bash -n "$tmpdir/builder-dependency-cache.sh"
-echo "Builder dependency container shell checks: PASS"
+echo "Mounted container-program shell checks: PASS"
 
 # Validate the programs and structured configuration embedded inside the
 # customization and artifact-recipe heredocs. `bash -n` validates only the
@@ -187,7 +201,7 @@ done
 
 ! grep -q '^epiphany-browser$' "$PROFILE/packages/base.txt"
 LC_ALL=C sort -c "$PROFILE/packages/base.txt"
-for pkg in btrfs-progs dosfstools e2fsprogs exfatprogs ntfs-3g f2fs-tools xfsprogs mesa-vulkan-drivers unattended-upgrades wireless-regdb iw wlr-randr edid-decode locales jq procps; do
+for pkg in binutils btrfs-progs dosfstools e2fsprogs exfatprogs ntfs-3g f2fs-tools xfsprogs mesa-vulkan-drivers unattended-upgrades wireless-regdb iw wlr-randr edid-decode locales jq procps; do
   grep -qx "$pkg" "$PROFILE/packages/base.txt"
 done
 for pkg in libsdl2-ttf-2.0-0 libqt6quickcontrols2-6; do
@@ -197,23 +211,23 @@ done
 for pkg in libsdl3-0 libsdl3-ttf0; do
   grep -qx "$pkg" "$PROFILE/packages/base.txt"
   grep -qx "$pkg" "$PROFILE/recipes/build-gamepad-osk.sh"
-  grep -Fq "$pkg" "$PROFILE/stages/33-runtime-closure.sh"
+  grep -Fq "$pkg" "$PROFILE/recipes/runtime-closure.sh"
 done
 grep -qx 'libglew2.2' "$PROFILE/packages/base.txt"
 grep -qx 'libglew2.2' "$PROFILE/recipes/build-ppsspp.sh"
 grep -Fq 'PPSSPP runtime manifest lacks libglew2.2' "$PROFILE/recipes/build-ppsspp.sh"
 grep -Fq 'PPSSPP build artifact does not resolve libGLEW.so.2.2' "$PROFILE/recipes/build-ppsspp.sh"
-grep -Fq 'PPSSPP does not resolve libGLEW.so.2.2 in merged runtime preflight' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq 'PPSSPP does not resolve libGLEW.so.2.2 in merged runtime preflight' "$PROFILE/recipes/runtime-closure.sh"
 grep -Fq 'canonical="$(readlink -f "$lib"' "$PROFILE/recipes/arm64-common.sh"
 grep -Fq 'dpkg-query -S "$canonical"' "$PROFILE/recipes/arm64-common.sh"
 grep -Fq 'Resolved system libraries without a dpkg owner' "$PROFILE/recipes/arm64-common.sh"
 grep -Fq 'RUNTIME_LIBRARY_PATH' "$PROFILE/recipes/arm64-common.sh"
 grep -Fq 'Mandatory native artifact lacks a runtime package manifest' "$PROFILE/stages/32-steam-and-merge.sh"
 grep -Fq 'runtime-packages.closure.txt' "$PROFILE/stages/33-runtime-closure.sh"
-grep -Fq 'core_runtime_roots=' "$PROFILE/stages/33-runtime-closure.sh"
-grep -Fq 'collect_runtime_packages "$root" "$derived"' "$PROFILE/stages/33-runtime-closure.sh"
-grep -Fq 'LD_LIBRARY_PATH=/opt/opi/media/lib:/opt/opi/media/lib64 ldd "$path"' "$PROFILE/stages/33-runtime-closure.sh"
-grep -Fq 'find "$root" -type f' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq 'core_runtime_roots=' "$PROFILE/recipes/runtime-closure.sh"
+grep -Fq 'collect_runtime_packages "$root" "$derived"' "$PROFILE/recipes/runtime-closure.sh"
+grep -Fq 'checked_ldd "$path" /opt/opi/media/lib:/opt/opi/media/lib64' "$PROFILE/recipes/runtime-closure.sh"
+grep -Fq 'find "$root" -type f' "$PROFILE/recipes/runtime-closure.sh"
 grep -Fq 'find "$root" -type f' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
 ! grep -Fq 'find "${appimage_roots[@]}" -type f' "$PROFILE/stages/33-runtime-closure.sh" "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
 grep -Fq 'Generated runtime contract package missing from target rootfs' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
@@ -224,11 +238,49 @@ grep -q '^pipewire-pulse$' "$PROFILE/packages/base.txt"
 ! grep -Eq '(^|/)(retroarch|libretro|lightdm|xfce)' "$PROFILE/packages/base.txt"
 
 grep -Eq '^gamepad\|build-essential( |$)' "$PROFILE/packages/build-groups.txt"
-grep -Fq 'BUILDER_CACHE_SCHEMA="v1-ubuntu26.04-arm64-ccache"' "$PROFILE/stages/18-builder-dependency-cache.sh"
-grep -Fq 'sha256sum "$WORK/build-package-groups.txt"' "$PROFILE/stages/18-builder-dependency-cache.sh"
-grep -Fq 'org.opi5pro.builder-cache-key' "$PROFILE/stages/18-builder-dependency-cache.sh"
-grep -Fq 'Cached ARM64 builder dependency is missing' "$PROFILE/stages/18-builder-dependency-cache.sh"
-grep -Fq 'OPI_BUILD_DEPS_READY=1' "$PROFILE/stages/21-arm64-build-helper.sh"
+python3 - "$PROFILE" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+profile = Path(sys.argv[1])
+groups = {}
+for line in (profile / "packages/build-groups.txt").read_text().splitlines():
+    name, packages = line.split("|", 1)
+    groups[name] = set(packages.split())
+mapping = {
+    "stremio-media": "build-stremio-native.sh", "snes9x": "build-snes9x.sh",
+    "ppsspp": "build-ppsspp.sh", "esde": "build-esde.sh",
+    "gamepad": "build-gamepad-osk.sh", "moonlight": "build-moonlight.sh",
+    "rmg": "build-rmg.sh", "flycast": "build-flycast.sh",
+    "melonds": "build-melonds.sh", "azahar": "build-azahar.sh",
+}
+for name, filename in mapping.items():
+    text = (profile / "recipes" / filename).read_text()
+    lines = text.splitlines()
+    start = next((i for i, line in enumerate(lines) if line.startswith("apt-get install -y --no-install-recommends")), None)
+    if start is None:
+        raise SystemExit(f"Could not parse dependency transaction for {name}")
+    transaction = lines[start].split("--no-install-recommends", 1)[1]
+    cursor = start
+    while lines[cursor].rstrip().endswith("\\"):
+        cursor += 1
+        transaction += " " + lines[cursor]
+    recipe = set(re.findall(r"[a-z0-9][a-z0-9+.-]+", transaction.replace("\\", " ")))
+    if recipe != groups[name]:
+        raise SystemExit(f"Build-group/recipe mismatch for {name}: {sorted(recipe ^ groups[name])}")
+if {"libcurl4-gnutls-dev", "libcurl4-openssl-dev"} <= set().union(*groups.values()):
+    pass
+else:
+    raise SystemExit("Expected conflicting curl providers are not represented in isolated groups")
+print("Isolated recipe dependency-contract checks: PASS")
+PY
+grep -Fq 'schema=v2-plain-arm64-base' "$PROFILE/stages/18-builder-dependency-cache.sh"
+grep -Fq 'docker tag "$UBUNTU_ARM64_IMAGE_ID" "$BUILDER_IMAGE"' "$PROFILE/stages/18-builder-dependency-cache.sh"
+grep -Fq "UBUNTU_ARM64_ARCH" "$PROFILE/stages/18-builder-dependency-cache.sh"
+grep -Fq '.ubuntu_arm64_image_id=$image_id' "$PROFILE/stages/18-builder-dependency-cache.sh"
+! grep -Fq 'OPI_BUILD_DEPS_READY' "$PROFILE/stages/21-arm64-build-helper.sh" "$PROFILE/recipes/arm64-common.sh"
+! grep -Fq 'org.opi5pro.builder-cache' "$PROFILE/stages/18-builder-dependency-cache.sh"
 grep -Fq 'CCACHE_COMPILERCHECK=content' "$PROFILE/stages/21-arm64-build-helper.sh"
 grep -Fq 'CCACHE_NAMESPACE=opi5pro-${name}' "$PROFILE/stages/21-arm64-build-helper.sh"
 grep -Fq 'CARGO_HOME=/tool-cache/cargo' "$PROFILE/stages/21-arm64-build-helper.sh"
@@ -240,11 +292,12 @@ grep -q 'gcc --version' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'go env CGO_ENABLED' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -Fq 'sort -u -o /out/runtime-packages.txt' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -Fq 'ARM64 merged-artifact runtime closure preflight' "$PROFILE/stages/33-runtime-closure.sh"
-grep -Fq 'Unresolved shared library before Armbian build' "$PROFILE/stages/33-runtime-closure.sh"
-grep -Fq 'libSDL3_ttf.so.0' "$PROFILE/stages/33-runtime-closure.sh"
-grep -Fq '/opt/opi/apps/duckstation /opt/opi/apps/armsx2' "$PROFILE/stages/33-runtime-closure.sh"
-grep -Fq 'Unresolved executable dependency in extracted AppImage' "$PROFILE/stages/33-runtime-closure.sh"
-grep -Fq 'appimage_checked >= 2' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq 'runtime-closure.receipt' "$PROFILE/stages/33-runtime-closure.sh" "$PROFILE/recipes/runtime-closure.sh"
+grep -Fq 'libSDL3_ttf.so.0' "$PROFILE/recipes/runtime-closure.sh"
+grep -Fq '/opt/opi/apps/duckstation /opt/opi/apps/armsx2' "$PROFILE/recipes/runtime-closure.sh"
+grep -Fq 'appimage_checked >= 2' "$PROFILE/recipes/runtime-closure.sh"
+grep -Fq 'checked_ldd' "$PROFILE/recipes/arm64-common.sh" "$PROFILE/recipes/runtime-closure.sh" "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+! grep -ERn 'ldd .*\|\| true|ldd .*2>&1.*true' "$PROFILE/recipes" "$PROFILE/stages" "$PROFILE/rootfs/customize.d"
 grep -Fq -- '-DCMAKE_POLICY_VERSION_MINIMUM=3.5' "$PROFILE/recipes/build-snes9x.sh"
 grep -Fq 'git_net -C /src fetch --depth=1 origin "$SNES9X_COMMIT"' "$PROFILE/recipes/build-snes9x.sh"
 grep -Fq "sed -i '/^#include <algorithm>\$/i #include <cstdint>'" "$PROFILE/recipes/build-snes9x.sh"
@@ -351,6 +404,12 @@ grep -Fq 'runuser -u ryan -- env HOME=/home/ryan USER=ryan LOGNAME=ryan' "$PROFI
 grep -Fq 'Built Moonlight commit differs from source lock' "$PROFILE/stages/31-native-artifacts.sh"
 grep -Eq '^DUCK_RELEASE_ID=[0-9]+$' "$PROFILE/sources.env"
 grep -Eq '^DUCK_ARM64_SHA256=[0-9a-f]{64}$' "$PROFILE/sources.env"
+grep -Eq '^OPENCODE_ARM64_SHA256=[0-9a-f]{64}$' "$PROFILE/sources.env"
+grep -Eq '^ARMSX2_ARM64_SHA256=[0-9a-f]{64}$' "$PROFILE/sources.env"
+grep -Eq '^ARMBIAN_COMMIT=[0-9a-f]{40}$' "$PROFILE/sources.env"
+grep -Fq 'download "$OPENCODE_URL" "$DOWNLOADS/opencode.tar.gz" "$OPENCODE_ARM64_SHA256"' "$PROFILE/stages/30-opencode-appimages.sh"
+grep -Fq 'extract_appimage armsx2 "$ARMSX2_URL" "$ARMSX2_ARM64_SHA256"' "$PROFILE/stages/30-opencode-appimages.sh"
+grep -Fq 'cat-file -e "${ARMBIAN_COMMIT}^{commit}"' "$PROFILE/stages/20-armbian-kernel.sh"
 grep -Fq 'pinned AppImage SHA-256 mismatch' "$PROFILE/stages/30-opencode-appimages.sh"
 grep -Fq 'duckstation_sha256:$duck_sha256' "$PROFILE/stages/13-source-resolution.sh"
 for component in PPSSPP RMG Flycast melonDS Azahar; do
@@ -375,7 +434,9 @@ for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
   grep -Fq "$unit" "$PROFILE/stages/51-offline-image-qa.sh"
 done
 grep -Fq 'branches: [main]' "$ROOT/.github/workflows/ci.yml"
-grep -qx '3.26' "$ROOT/VERSION"
+grep -Fq 'tonistiigi/binfmt:qemu-v10.2.3-68' "$ROOT/.github/workflows/ci.yml"
+grep -Fq './tools/container-smoke.sh' "$ROOT/.github/workflows/ci.yml"
+grep -qx '3.27' "$ROOT/VERSION"
 grep -Fq 'CACHE_ROOT="${OPI5PRO_CACHE_ROOT:-${HOME}/.cache/opi5pro-builder}"' "$PROFILE/profile.env"
 grep -Fq 'os.path.realpath' "$PROFILE/stages/01-cleanup-workspace.sh"
 grep -Fq '"$REPO_ROOT"|"$REPO_ROOT"/*' "$PROFILE/stages/01-cleanup-workspace.sh"
@@ -410,7 +471,7 @@ grep -Fq 'linkage="$(ldd "$elf" 2>&1)"' "$PROFILE/rootfs/customize.d/45-applianc
 grep -Fq 'Build source lock JSON' "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"
 grep -Fq 'Image-managed source builds remain pinned' "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"
 ! grep -Eq 'dist-upgrade|full-upgrade|do-release-upgrade' "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"
-grep -Fq 'V3.26 appliance policy missing from final image' "$PROFILE/stages/51-offline-image-qa.sh"
+grep -Fq 'V3.27 appliance policy missing from final image' "$PROFILE/stages/51-offline-image-qa.sh"
 ! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/stages/00-common.sh"
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/recipes/arm64-common.sh"
@@ -501,7 +562,16 @@ echo 'ELF 64-bit LSB pie executable, ARM aarch64'
 EOF
 cat > "$tmpdir/runtime-owner-bin/ldd" <<'EOF'
 #!/usr/bin/env bash
+[[ "${RUNTIME_OWNER_LDD_FAIL:-0}" == 0 ]] || exit 7
+if [[ "${RUNTIME_OWNER_LDD_MISSING:-0}" == 1 ]]; then
+  echo 'libmissing.so.1 => not found'
+  exit 0
+fi
 echo "libGLEW.so.2.2 => ${RUNTIME_OWNER_FAKE_LIB:?} (0x0000)"
+EOF
+cat > "$tmpdir/runtime-owner-bin/readelf" <<'EOF'
+#!/usr/bin/env bash
+echo ' 0x0000000000000001 (NEEDED)             Shared library: [libGLEW.so.2.2]'
 EOF
 cat > "$tmpdir/runtime-owner-bin/readlink" <<'EOF'
 #!/usr/bin/env bash
@@ -532,6 +602,18 @@ if (
   echo "Runtime collector accepted an unowned system library" >&2
   exit 1
 fi
+for mode in RUNTIME_OWNER_LDD_FAIL RUNTIME_OWNER_LDD_MISSING; do
+  if (
+    source "$PROFILE/recipes/arm64-common.sh"
+    export RUNTIME_OWNER_FAKE_LIB="$tmpdir/runtime-owner-root/libGLEW.so.2.2"
+    export "$mode=1"
+    PATH="$tmpdir/runtime-owner-bin:$PATH" collect_runtime_packages \
+      "$tmpdir/runtime-owner-root" "$tmpdir/runtime-owner-bad.txt" 2>/dev/null
+  ); then
+    echo "Runtime collector accepted negative ldd mode: $mode" >&2
+    exit 1
+  fi
+done
 echo "Runtime package-owner collector checks: PASS"
 
 # A cache hit must reuse the verified bytes, while corruption must invalidate
@@ -637,6 +719,7 @@ required = {
     "docs/V3.24-AUDIT.md",
     "docs/V3.25-AUDIT.md",
     "docs/V3.26-AUDIT.md",
+    "docs/V3.27-AUDIT.md",
 }
 missing_required = sorted(path for path in required if not (root / path).is_file())
 if missing_required:
