@@ -1,18 +1,16 @@
-name: Static checks
+name: Syntax check
 
 on:
-  workflow_dispatch:
   push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  static:
+  syntax:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate repository
-        run: ./tools/check.sh
+      - run: bash -n build.sh native-artifacts.sh userpatches/customize-image.sh orangepi5pro-gaming/recipes/*.sh

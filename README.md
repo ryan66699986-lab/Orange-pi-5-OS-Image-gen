@@ -1,104 +1,96 @@
-# Orange Pi 5 OS Image Generator
+# Orange Pi 5 Pro Gaming OS — V3.27
 
-Source repository for the controller-first Orange Pi 5 Pro gaming/media OS image.
+V3.27 is a conventional Armbian image recipe for the Orange Pi 5 Pro 4 GB. The image is built by the standard Armbian framework, with one `userpatches` configuration and a small native-application build helper. Every image attempt starts from a fresh, pinned Armbian checkout.
 
-This repository is the **working source of truth** for the project. The generated Armbian image, diagnostic bundles, and any standalone one-shot builder are outputs of this repository rather than the primary development source.
+## Release gates
 
-The layout deliberately follows the same broad repository philosophy used by projects such as CachyOS' kernel repository: keep build recipes, configuration, source pins and validation in Git; keep generated binaries/images out of Git.
+Two requirements are non-negotiable:
 
-This is not a generic Armbian remix. It is an appliance-style image with explicit release gates: native ARM64 emulation, a controller-operable interface, real RK3588 hardware video decoding inside Stremio, hardware-decoded Moonlight streaming, and repeatable image construction from auditable source pins. A completed build is a candidate; only physical-board validation can make it known-good.
+1. Stremio must actually use RK3588 V4L2 Request hardware decoding.
+2. Every configured emulator must be a native AArch64 application; no x86 translation layer is used.
 
-## Current development target
+Image construction checks that the native Stremio shell, custom FFmpeg, libmpv, forced `v4l2request-copy` policy, codec probes, emulator executables and ES-DE mappings are present. Construction alone cannot prove access to the Orange Pi's decoder hardware. After first boot, V3.27 is accepted only when this passes on the board:
 
-| Item | Current state |
-|---|---|
-| Profile | `orangepi5pro-gaming` |
-| Project generation | V3.26 |
-| Board | Orange Pi 5 Pro, RK3588S, 4 GB |
-| Base | Armbian build framework |
-| Distribution | Ubuntu 26.04 Resolute |
-| Kernel | Armbian `edge`, Linux 7.1+ required |
-| Session | greetd → Gamescope → ES-DE; direct Labwc/ES-DE recovery mode |
-| Desktop fallback | Labwc / Wayland only; no X11-first desktop environment |
-| Media | Native Stremio + enforced RK3588 V4L2 Request FFmpeg/libmpv path; H.264/HEVC/Main10/VP9/AV1 4K probes |
-| Streaming | Moonlight, forced hardware decode through the same audited media stack; display mode and HDR auto-detected at launch |
-| Controllers | Any native Linux-input gamepad; EasySMX X20 is the wired/2.4 GHz/Bluetooth reference device |
-| Audio | PipeWire HDMI/DisplayPort plus Bluetooth; HDMI selected once on first successful session, later user choices preserved |
-| Storage policy | SD boot/current root only during testing; final plan is SD boot + Btrfs NVMe root, later eMMC boot + Btrfs NVMe root |
-| Browser | Brave default, Firefox alternative; gamepad mouse/OSK available |
-| Status | active development; V3.26 adds a hybrid source-mirror/fresh-output build and same-release on-device maintenance |
-
-## Repository layout
-
-```text
-.
-├── build.sh
-├── orangepi5pro-gaming/
-│   ├── profile.env
-│   ├── sources.env
-│   ├── packages/
-│   ├── kernel/
-│   ├── recipes/
-│   ├── rootfs/customize.d/
-│   └── stages/
-├── tools/
-├── docs/
-└── .github/workflows/
+```bash
+opi-validate
 ```
 
-`orangepi5pro-gaming/` is the self-contained image recipe, analogous to a build-variant directory in a packaging repository. Future profiles can sit beside it without rewriting the repository structure.
+That command decodes bundled H.264, HEVC Main10, H.264 4K, HEVC Main10 4K, VP9 4K and AV1 4K probes through `v4l2request-copy`, then requires evidence from a real Stremio playback session. A built image is a candidate; it is not a successful release until the hardware gate passes.
+
+## Image contents
+
+- Ubuntu 26.04 Resolute
+- Armbian `edge` / Linux 7.1
+- greetd → Gamescope → ES-DE 3.4.1, with direct Labwc recovery
+- native Stremio 1.1.4 linked to a dedicated V4L2 Request FFmpeg 8.1 branch and mpv 0.41.0
+- native Moonlight and controller on-screen keyboard builds
+- PipeWire HDMI/DisplayPort and Bluetooth audio
+- NetworkManager, Brave, Firefox and OpenCode
+- SD-card ext4 root for hardware validation; Btrfs/NVMe migration is deferred until the SD image passes
+
+| Systems | Native emulator |
+|---|---|
+| PlayStation | DuckStation AArch64 |
+| PlayStation 2 | ARMSX2 AArch64 |
+| PSP | PPSSPP built from source |
+| Nintendo 64 | RMG built from source |
+| Dreamcast | Flycast built from source |
+| GameCube / Wii | Ubuntu AArch64 Dolphin |
+| Game Boy / Color | Ubuntu AArch64 SameBoy |
+| Game Boy Advance | Ubuntu AArch64 mGBA |
+| Nintendo DS | melonDS built from source |
+| Nintendo 3DS | Azahar built from source |
+| NES | Ubuntu AArch64 Nestopia |
+| SNES | Snes9x built from source |
 
 ## Build
 
-On the x86_64 Linux build host:
+Use a Linux host with Docker, Git, curl, rsync, OpenSSL, at least 8 GB RAM and about 50 GB free disk space. ARM64 Docker execution must work; on x86_64 this normally means binfmt/QEMU is installed.
+
+On a Debian or Ubuntu x86_64 build host, install that support once with:
 
 ```bash
-git clone git@github.com:ryan66699986-lab/Orange-pi-5-OS-Image-gen.git
+sudo apt install qemu-user-static binfmt-support
+```
+
+```bash
+git clone https://github.com/ryan66699986-lab/Orange-pi-5-OS-Image-gen.git
 cd Orange-pi-5-OS-Image-gen
-./tools/check.sh
 ./build.sh
 ```
 
-The build uses a hybrid persistence rule. A verified bare Armbian source mirror and external dependency/download/compiler caches persist, while every attempt creates a new detached Armbian checkout, application build tree, merged root, rootfs and image. Failed outputs remain diagnostic-only and are never resumed.
+The script asks once for the initial `ryan` password and immediately converts it to a SHA-512 password hash. It then:
 
-The installed appliance can apply signed same-release Armbian, Ubuntu, Brave, Firefox and other APT-managed package updates through `opi-update`. Source-built Stremio, Moonlight and native emulator artifacts remain pinned until a separately validated project-bundle channel exists; the updater never silently replaces that hardware-sensitive stack.
+1. downloads checksum-pinned AArch64 application artifacts;
+2. compiles the source-pinned native applications in Ubuntu 26.04 ARM64 containers;
+3. creates a fresh checkout of the pinned Armbian build commit;
+4. adds the native rootfs through `userpatches/overlay`;
+5. invokes the normal `./compile.sh build opi5pro` flow.
 
-The builder never writes to the Orange Pi's installed NVMe. During image development the NVMe is limited to read-only inventory and SMART queries. See the storage handbook before any post-validation migration.
+Nothing from a failed Armbian workspace is resumed. Logs are copied out and the workspace is deleted on both success and failure.
 
-## Documentation map
+The uncompressed image, checksum and logs are written to:
 
-| Document | Purpose |
-|---|---|
-| [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) | Authoritative goals, non-goals and definition of done |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System boundaries, boot/session topology and media architecture |
-| [`docs/DESIGN-DECISIONS.md`](docs/DESIGN-DECISIONS.md) | Choices, rejected alternatives and reasons |
-| [`docs/COMPONENTS.md`](docs/COMPONENTS.md) | Component inventory, pins, acquisition and validation strategy |
-| [`docs/EMULATION.md`](docs/EMULATION.md) | Console-to-emulator mapping, ROM layout, formats and test scope |
-| [`docs/BUILDING.md`](docs/BUILDING.md) | Host requirements, complete pipeline and build outputs |
-| [`docs/VALIDATION.md`](docs/VALIDATION.md) | Offline and physical-hardware release gates |
-| [`docs/VALIDATION-RECORD-TEMPLATE.md`](docs/VALIDATION-RECORD-TEMPLATE.md) | Reusable evidence sheet for each image candidate |
-| [`docs/RELEASE-PROCESS.md`](docs/RELEASE-PROCESS.md) | Versioning, candidate promotion, tagging and rollback |
-| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | Daily use, session switching, helpers, logs and maintenance |
-| [`docs/STORAGE.md`](docs/STORAGE.md) | SD/NVMe/eMMC phases, safeguards, migration and rollback |
-| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Failure triage for builds and runtime faults |
-| [`docs/REFERENCES.md`](docs/REFERENCES.md) | Curated primary upstream documentation |
-| [`docs/STATUS.md`](docs/STATUS.md) | Current generation and outstanding proof |
-| [`docs/V3.26-AUDIT.md`](docs/V3.26-AUDIT.md) | Scope refinement, hybrid workspace and appliance-maintenance record |
-| [`docs/V3.25-AUDIT.md`](docs/V3.25-AUDIT.md) | Safe build-speed design, trust boundaries and regression evidence |
-| [`docs/V3.24-AUDIT.md`](docs/V3.24-AUDIT.md) | Systemic late-failure audit and V3.24 closure record |
-| [`docs/V3.23-AUDIT.md`](docs/V3.23-AUDIT.md) | V3.22 full-log diagnosis and explicit GLEW repair |
-| [`docs/V3.22-AUDIT.md`](docs/V3.22-AUDIT.md) | Prior whole-image assurance expansion |
-| [`SECURITY.md`](SECURITY.md) | Security model and responsible reporting |
+```text
+~/opi5pro-images/v3.27/
+```
 
-## Development workflow
+Useful overrides:
 
-Changes should now be made here first:
+```bash
+OPI_BUILD_PARENT=/fast/disk \
+OPI_OUTPUT_DIR=/wanted/output \
+OPI_NATIVE_JOBS=4 \
+./build.sh
+```
 
-1. update source pins, package lists, recipes, kernel overrides or rootfs configuration;
-2. run `./tools/check.sh`;
-3. commit the change with a useful message;
-4. build from a fresh workspace;
-5. attach the resulting build log to the issue/commit discussion when diagnosing a failure;
-6. tag known-good milestones only after the image and hardware validation gates pass.
+The default native-build parallelism is two jobs for 8 GB hosts. Increase it only when the host has enough memory.
 
-Start with `docs/REQUIREMENTS.md`, `docs/ARCHITECTURE.md` and `docs/VALIDATION.md`. Maintainers should also read `CONTRIBUTING.md` before changing the image contract.
+## First boot test
+
+1. Boot the SD image and confirm ES-DE appears.
+2. Open Stremio from Ports and play a known video long enough to populate its playback log.
+3. Open a terminal or virtual console and run `opi-validate`.
+4. Do not promote the image or migrate it to NVMe unless every check reports `PASS`.
+
+The Orange Pi 5 Pro is a community-supported Armbian board. Armbian exposes the edge kernel for it, but hardware behavior still has to be established on the target board rather than inferred from a successful host build.
