@@ -9,7 +9,8 @@
 | Armbian build framework | Fresh shallow clone of `armbian/build` | Orange Pi boot chain, kernel/rootfs/image assembly | Fresh tree, board/branch/release inputs and completed raw-image QA |
 | Ubuntu 26.04 Resolute ARM64 | Armbian/Ubuntu archives | Runtime and build package base | Early package solver plus target `dpkg` assertions |
 | Linux edge | Armbian `rockchip64-edge` configuration plus local overrides | Panthor, VDEC, DRM, audio, CEC, input, wireless and filesystems | Version ≥7.0 and exact Kconfig symbol checks before/after build |
-| Mesa/PanVK userspace | Ubuntu ARM64 packages | Vulkan/OpenGL/Wayland graphics | `vulkaninfo`, render node and real session tests |
+| Mesa/PanVK userspace | Explicit Ubuntu `mesa-vulkan-drivers` package | Vulkan/OpenGL/Wayland graphics | Panfrost ICD file plus `opi-gpu-check`; software Vulkan is rejected |
+| Armbian firmware | Armbian-generated `armbian-firmware` package | Orange Pi board Wi-Fi/Bluetooth firmware | Package plus Broadcom SDIO and HCD payload checks in target, raw image and runtime |
 
 ## Interface and appliance layer
 
@@ -32,7 +33,7 @@ The gamepad artifact explicitly declares both `libsdl3-0` and `libsdl3-ttf0`; de
 | mpv/libmpv | `MPV_TAG` resolved to commit | Built against dedicated FFmpeg and installed under the same prefix | `ldd`/pkg-config/RUNPATH stay inside `/opt/opi/media` |
 | Stremio Linux shell | `STREMIO_TAG` resolved to commit | Native GTK4/libadwaita/WebKitGTK client linked to dedicated libmpv | Binary contains policy, standalone probes pass, real Stremio log proves `v4l2request-copy` |
 | Moonlight Qt | `MOONLIGHT_TAG` resolved to commit | Native client linked to dedicated FFmpeg libraries | Force-hardware setting, dedicated linkage, actual stream mode and hardware-decoder log |
-| PipeWire/WirePlumber | Ubuntu packages | HDMI/DP and Bluetooth audio graph/policy | HDMI/DP sink, Bluetooth controller/plugin and real routed playback |
+| PipeWire/WirePlumber | Ubuntu packages | HDMI/DP and Bluetooth audio graph/policy | One-time HDMI-first default, preserved later choice, HDMI/DP sink, Bluetooth controller/plugin and real playback |
 
 The Ubuntu `ffmpeg` and `mpv` packages remain available for general desktop use, but they are not accepted as proof for Stremio or Moonlight. Those applications must resolve the dedicated media prefix.
 
@@ -50,7 +51,7 @@ The Ubuntu `ffmpeg` and `mpv` packages remain available for general desktop use,
 ## Emulator acquisition classes
 
 - **Native source builds:** PPSSPP, RMG, Flycast, melonDS, Azahar and Snes9x. Each tag is resolved to a commit; the artifact merge records the built commit.
-- **Official ARM64 AppImages:** DuckStation and ARMSX2. The AppImages are downloaded, extracted and exposed through normalized launchers; the exact download hash is recorded.
+- **Official ARM64 AppImages:** DuckStation and ARMSX2. The AppImages are downloaded, architecture-checked, extracted and exposed through normalized launchers. Executable ELF dependency closure is checked before Armbian and again in the target. DuckStation's rolling asset is bound to an audited release ID and SHA-256; all downloads are recorded in the generated lock.
 - **Ubuntu ARM64 packages:** Dolphin, SameBoy, mGBA, Nestopia and their dependencies. Executable names/paths are resolved in an isolated ARM64 preflight.
 
 See `EMULATION.md` for system mappings.

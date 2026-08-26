@@ -66,7 +66,7 @@ This is a compact architecture-decision record. Changes that reverse these decis
 
 ## Display-aware Moonlight
 
-**Decision:** detect the active Wayland output, current/preferred mode and EDID HDR metadata at launch; force hardware decode.
+**Decision:** rank every enabled Wayland output by its highest EDID-preferred/native mode and refresh, inspect that connector's EDID HDR metadata at launch, and force hardware decode.
 
 **Why:** the image must work across televisions and monitors rather than hard-code 4K60/HDR. Recording the selected mode makes the subsequent session validation objective.
 
@@ -90,7 +90,7 @@ This is a compact architecture-decision record. Changes that reverse these decis
 
 **Decision:** use PipeWire with WirePlumber, ALSA compatibility, PulseAudio compatibility and BlueZ SPA support.
 
-**Why:** one graph/policy stack can expose HDMI/DisplayPort and Bluetooth sinks, permit runtime user selection, and serve native Wayland applications.
+**Why:** one graph/policy stack can expose HDMI/DisplayPort and Bluetooth sinks, permit runtime user selection, and serve native Wayland applications. A one-time first-session helper implements the HDMI default without repeatedly overwriting a later user-selected Bluetooth sink.
 
 ## Maximum performance with explicit 4 GB safety
 

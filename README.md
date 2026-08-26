@@ -13,7 +13,7 @@ This is not a generic Armbian remix. It is an appliance-style image with explici
 | Item | Current state |
 |---|---|
 | Profile | `orangepi5pro-gaming` |
-| Project generation | V3.21 |
+| Project generation | V3.22 |
 | Board | Orange Pi 5 Pro, RK3588S, 4 GB |
 | Base | Armbian build framework |
 | Distribution | Ubuntu 26.04 Resolute |
@@ -23,10 +23,10 @@ This is not a generic Armbian remix. It is an appliance-style image with explici
 | Media | Native Stremio + enforced RK3588 V4L2 Request FFmpeg/libmpv path; H.264/HEVC/Main10/VP9/AV1 4K probes |
 | Streaming | Moonlight, forced hardware decode through the same audited media stack; display mode and HDR auto-detected at launch |
 | Controllers | Any native Linux-input gamepad; EasySMX X20 is the wired/2.4 GHz/Bluetooth reference device |
-| Audio | PipeWire HDMI/DisplayPort plus Bluetooth audio |
+| Audio | PipeWire HDMI/DisplayPort plus Bluetooth; HDMI selected once on first successful session, later user choices preserved |
 | Storage policy | SD boot/current root only during testing; final plan is SD boot + Btrfs NVMe root, later eMMC boot + Btrfs NVMe root |
 | Browser | Brave default, Firefox alternative; gamepad mouse/OSK available |
-| Status | active development; V3.21 corrects V3.20's missing gamepad-osk SDL3_ttf runtime and adds an early merged-runtime closure gate |
+| Status | active development; V3.22 closes GPU, AppImage, firmware, CEC, audio-policy, display-selection and filesystem audit gaps |
 
 ## Repository layout
 
@@ -81,7 +81,7 @@ The builder never writes to the Orange Pi's installed NVMe. During image develop
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Failure triage for builds and runtime faults |
 | [`docs/REFERENCES.md`](docs/REFERENCES.md) | Curated primary upstream documentation |
 | [`docs/STATUS.md`](docs/STATUS.md) | Current generation and outstanding proof |
-| [`docs/V3.21-AUDIT.md`](docs/V3.21-AUDIT.md) | Most recent full build-log audit |
+| [`docs/V3.22-AUDIT.md`](docs/V3.22-AUDIT.md) | Most recent whole-image audit and V3.22 closure record |
 | [`SECURITY.md`](SECURITY.md) | Security model and responsible reporting |
 
 ## Development workflow

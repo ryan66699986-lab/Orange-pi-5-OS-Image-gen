@@ -52,7 +52,7 @@ Kernel support includes evdev/joydev, uinput, UHID, generic USB/Bluetooth HID, X
 
 ## Graphics and display boundary
 
-The kernel contract requires Rockchip DRM and Panthor. Gamescope, Labwc and applications run Wayland-first with Xwayland as a compatibility path. Display choice is left to DRM/Wayland rather than fixed in the image. Moonlight separately records the active output's current/preferred dimensions and refresh rate, parses EDID for HDR static metadata and applies that policy immediately before launch.
+The kernel contract requires Rockchip DRM and Panthor, while the package contract explicitly requires Mesa's PanVK ICD. Gamescope, Labwc and applications run Wayland-first with Xwayland as a compatibility path. Display choice is left to DRM/Wayland rather than fixed in the image. Moonlight ranks all enabled outputs by highest EDID-preferred/native mode, parses the selected connector's EDID for HDR static metadata and applies that policy immediately before launch.
 
 No build-time test can prove a real scanout mode, EDID behavior or PanVK stability. Those belong to physical validation.
 
@@ -77,7 +77,7 @@ Lumera is not included because its ARM64 deliverable targets Android/Bionic and 
 
 ## Audio and device services
 
-PipeWire is the audio server, PipeWire Pulse/ALSA compatibility serves applications, and WirePlumber manages devices/policy. BlueZ plus the PipeWire BlueZ SPA plugin supplies Bluetooth audio. NetworkManager owns network configuration. UDisks/udiskie automount removable media in both sessions, and a user timer discovers the documented USB ROM tree.
+PipeWire is the audio server, PipeWire Pulse/ALSA compatibility serves applications, and WirePlumber manages devices/policy. A user oneshot chooses HDMI/DisplayPort only on the first successful session; after recording that choice it never overrides a later Bluetooth or HDMI selection. BlueZ plus the PipeWire BlueZ SPA plugin supplies Bluetooth audio. NetworkManager owns network configuration. UDisks/udiskie automount common removable media in both sessions, and a user timer discovers the documented USB ROM tree.
 
 ## Memory and performance
 

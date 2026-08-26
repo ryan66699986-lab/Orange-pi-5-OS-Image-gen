@@ -165,7 +165,14 @@ grep -q '^CONFIG_BTRFS_FS=y$' "$PROFILE/kernel/edge-overrides.conf"
 grep -q '^CONFIG_EXFAT_FS=m$' "$PROFILE/kernel/edge-overrides.conf"
 grep -q '^CONFIG_NTFS3_FS=m$' "$PROFILE/kernel/edge-overrides.conf"
 grep -q '^CONFIG_VFAT_FS=y$' "$PROFILE/kernel/edge-overrides.conf"
-grep -Fq '"BTRFS_FS:y" "EXFAT_FS:m" "NTFS3_FS:m" "VFAT_FS:y"' "$PROFILE/stages/20-armbian-kernel.sh"
+grep -q '^CONFIG_RC_CORE=y$' "$PROFILE/kernel/edge-overrides.conf"
+grep -q '^CONFIG_MEDIA_CEC_RC=y$' "$PROFILE/kernel/edge-overrides.conf"
+grep -q '^CONFIG_F2FS_FS=m$' "$PROFILE/kernel/edge-overrides.conf"
+grep -q '^CONFIG_XFS_FS=m$' "$PROFILE/kernel/edge-overrides.conf"
+grep -q '^CONFIG_ISO9660_FS=m$' "$PROFILE/kernel/edge-overrides.conf"
+grep -q '^CONFIG_UDF_FS=m$' "$PROFILE/kernel/edge-overrides.conf"
+grep -Fq '"RC_CORE:y" "MEDIA_CEC_RC:y"' "$PROFILE/stages/20-armbian-kernel.sh"
+grep -Fq '"F2FS_FS:m" "XFS_FS:m" "ISO9660_FS:m" "UDF_FS:m"' "$PROFILE/stages/20-armbian-kernel.sh"
 grep -Fq 'Btrfs root filesystem support was lost' "$PROFILE/stages/50-final-audit-build.sh"
 for spec in SOUND:m SND:m SND_SOC:m SND_SOC_HDMI_CODEC:m SND_SOC_ROCKCHIP_I2S_TDM:m SND_SIMPLE_CARD:m; do
   sym="${spec%%:*}"
@@ -174,7 +181,7 @@ for spec in SOUND:m SND:m SND_SOC:m SND_SOC_HDMI_CODEC:m SND_SOC_ROCKCHIP_I2S_TD
 done
 
 ! grep -q '^epiphany-browser$' "$PROFILE/packages/base.txt"
-for pkg in btrfs-progs dosfstools e2fsprogs exfatprogs ntfs-3g unattended-upgrades wireless-regdb iw wlr-randr edid-decode locales; do
+for pkg in btrfs-progs dosfstools e2fsprogs exfatprogs ntfs-3g f2fs-tools xfsprogs mesa-vulkan-drivers unattended-upgrades wireless-regdb iw wlr-randr edid-decode locales; do
   grep -qx "$pkg" "$PROFILE/packages/base.txt"
 done
 for pkg in libsdl2-ttf-2.0-0 libqt6quickcontrols2-6; do
@@ -201,6 +208,9 @@ grep -Fq 'sort -u -o /out/runtime-packages.txt' "$PROFILE/recipes/build-gamepad-
 grep -Fq 'ARM64 merged-artifact runtime closure preflight' "$PROFILE/stages/33-runtime-closure.sh"
 grep -Fq 'Unresolved shared library before Armbian build' "$PROFILE/stages/33-runtime-closure.sh"
 grep -Fq 'libSDL3_ttf.so.0' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq '/opt/opi/apps/duckstation /opt/opi/apps/armsx2' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq 'Unresolved executable dependency in extracted AppImage' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq 'appimage_checked >= 2' "$PROFILE/stages/33-runtime-closure.sh"
 grep -Fq -- '-DCMAKE_POLICY_VERSION_MINIMUM=3.5' "$PROFILE/recipes/build-snes9x.sh"
 grep -Fq 'git_net -C /src fetch --depth=1 origin "$SNES9X_COMMIT"' "$PROFILE/recipes/build-snes9x.sh"
 grep -Fq "sed -i '/^#include <algorithm>\$/i #include <cstdint>'" "$PROFILE/recipes/build-snes9x.sh"
@@ -231,12 +241,21 @@ grep -Fq 'opi-moonlight-session-check' "$PROFILE/rootfs/customize.d/50-runtime-v
 grep -Fq 'opi-controller-check' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
 grep -Fq 'ID_INPUT_JOYSTICK=1' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
 grep -Fq 'opi-audio-check' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
+grep -Fq 'opi-audio-initial-default' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
+grep -Fq 'wpctl set-default' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
+grep -Fq 'opi-gpu-check' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
+grep -Fq 'panfrost_icd.json' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
+grep -Fq 'llvmpipe|lavapipe' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
+grep -Fq 'opi-cec-check' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
+grep -Fq 'armbian-firmware' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq 'brcmfmac*-sdio.bin*' "$PROFILE/stages/51-offline-image-qa.sh"
 grep -Fq 'opi-nvme-check' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
 grep -Fq 'Read-only NVMe inventory' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
 grep -Fq 'opi-validation-report' "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc"
 grep -Fq 'opi-moonlight-display-auto' "$PROFILE/rootfs/customize.d/20-media-steam.sh.inc"
 grep -Fq 'wlr-randr --json' "$PROFILE/rootfs/customize.d/20-media-steam.sh.inc"
 grep -Fq 'HDR Static Metadata Data Block' "$PROFILE/rootfs/customize.d/20-media-steam.sh.inc"
+grep -Fq 'def best_mode(display):' "$PROFILE/rootfs/customize.d/20-media-steam.sh.inc"
 grep -Fq '/usr/local/bin/opi-moonlight-display-auto' "$PROFILE/recipes/build-moonlight.sh"
 grep -Fq 'guide+start' "$PROFILE/rootfs/customize.d/30-controller-session.sh.inc"
 grep -Fq 'ensure_gamepad_mouse_enabled()' "$PROFILE/rootfs/customize.d/30-controller-session.sh.inc"
@@ -289,6 +308,10 @@ grep -Fq '/usr/lib/aarch64-linux-gnu/libSDL3.so.0' "$PROFILE/stages/51-offline-i
 grep -Fq '/usr/lib/aarch64-linux-gnu/libSDL3_ttf.so.0' "$PROFILE/stages/51-offline-image-qa.sh"
 grep -Fq 'gamepad-osk runtime link is missing' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
 grep -Fq 'Built Moonlight commit differs from source lock' "$PROFILE/stages/31-native-artifacts.sh"
+grep -Eq '^DUCK_RELEASE_ID=[0-9]+$' "$PROFILE/sources.env"
+grep -Eq '^DUCK_ARM64_SHA256=[0-9a-f]{64}$' "$PROFILE/sources.env"
+grep -Fq 'pinned AppImage SHA-256 mismatch' "$PROFILE/stages/30-opencode-appimages.sh"
+grep -Fq 'duckstation_sha256:$duck_sha256' "$PROFILE/stages/13-source-resolution.sh"
 for component in PPSSPP RMG Flycast melonDS Azahar; do
   grep -Fq "Built ${component} commit differs from source lock" "$PROFILE/stages/31-native-artifacts.sh"
 done
@@ -311,7 +334,7 @@ for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
   grep -Fq "$unit" "$PROFILE/stages/51-offline-image-qa.sh"
 done
 grep -Fq 'branches: [main]' "$ROOT/.github/workflows/ci.yml"
-grep -qx '3.21' "$ROOT/VERSION"
+grep -qx '3.22' "$ROOT/VERSION"
 ! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/stages/00-common.sh"
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/recipes/arm64-common.sh"
@@ -344,6 +367,49 @@ grep -qx 'enabled = true' "$tmpdir/gamepad-mouse-missing.ini"
 sed -i 's/^enabled = true$/enabled = true  # legal inline comment/' "$tmpdir/gamepad-mouse-missing.ini"
 awk 'BEGIN{ok=0} /^[[:space:]]*\[mouse\][[:space:]]*$/{mouse=1;next} /^[[:space:]]*\[/{mouse=0} mouse && /^[[:space:]]*enabled[[:space:]]*=[[:space:]]*true([[:space:]]*#.*)?[[:space:]]*$/{ok=1} END{exit !ok}' "$tmpdir/gamepad-mouse-missing.ini"
 echo "gamepad-osk config mutation/validation checks: PASS"
+
+# Execute the embedded display policy with two outputs. A lower-resolution
+# current output must not win over the other output's EDID-preferred 4K mode.
+awk '/^python3 - "\$cfg" "\$json" "\$state_dir\/moonlight-display.env" <<'"'"'PY'"'"'$/{copy=1; next} copy && /^PY$/{exit} copy{print}' \
+  "$PROFILE/rootfs/customize.d/20-media-steam.sh.inc" > "$tmpdir/moonlight-display-policy.py"
+cat > "$tmpdir/moonlight-outputs.json" <<'EOF'
+[
+  {"name":"HDMI-A-1","enabled":true,"modes":[{"width":1920,"height":1080,"refresh":60000,"current":true}]},
+  {"name":"HDMI-A-2","enabled":true,"modes":[{"width":3840,"height":2160,"refresh":60000,"preferred":true}]}
+]
+EOF
+printf '[General]\nwidth=1280\nheight=720\nfps=60\nvideodec=1\n' > "$tmpdir/Moonlight.conf"
+python3 "$tmpdir/moonlight-display-policy.py" "$tmpdir/Moonlight.conf" "$tmpdir/moonlight-outputs.json" "$tmpdir/moonlight-display.env" >/dev/null
+grep -qx 'width=3840' "$tmpdir/Moonlight.conf"
+grep -qx 'height=2160' "$tmpdir/Moonlight.conf"
+grep -qx 'OUTPUT_NAME=HDMI-A-2' "$tmpdir/moonlight-display.env"
+echo "Moonlight multi-output selection check: PASS"
+
+# Run the one-time audio helper against a deterministic wpctl fixture.
+awk '/^cat > \/usr\/local\/bin\/opi-audio-initial-default <<'"'"'EOF'"'"'$/{copy=1; next} copy && /^EOF$/{exit} copy{print}' \
+  "$PROFILE/rootfs/customize.d/50-runtime-validation.sh.inc" > "$tmpdir/opi-audio-initial-default"
+chmod +x "$tmpdir/opi-audio-initial-default"
+mkdir -p "$tmpdir/bin" "$tmpdir/audio-home"
+cat > "$tmpdir/bin/wpctl" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == status ]]; then
+  cat <<'STATUS'
+Audio
+ ├─ Sinks:
+ │  * 42. HDMI / DisplayPort Output
+ ├─ Sources:
+STATUS
+elif [[ "$1" == set-default && "$2" == 42 ]]; then
+  printf '%s\n' "$2" > "${AUDIO_TEST_SELECTED:?}"
+else
+  exit 1
+fi
+EOF
+chmod +x "$tmpdir/bin/wpctl"
+PATH="$tmpdir/bin:$PATH" HOME="$tmpdir/audio-home" AUDIO_TEST_SELECTED="$tmpdir/audio-selected" "$tmpdir/opi-audio-initial-default" >/dev/null
+grep -qx 42 "$tmpdir/audio-selected"
+grep -Fq 'HDMI_DEFAULT_SINK=' "$tmpdir/audio-home/.local/state/opi/audio-initial-default.env"
+echo "One-time HDMI audio policy check: PASS"
 
 # Until image finalization, the repository may inventory/SMART-check NVMe but
 # must never partition, format, mount, migrate to, or write the installed NVMe.
@@ -379,6 +445,7 @@ required = {
     "docs/TROUBLESHOOTING.md",
     "docs/VALIDATION.md",
     "docs/VALIDATION-RECORD-TEMPLATE.md",
+    "docs/V3.22-AUDIT.md",
 }
 missing_required = sorted(path for path in required if not (root / path).is_file())
 if missing_required:

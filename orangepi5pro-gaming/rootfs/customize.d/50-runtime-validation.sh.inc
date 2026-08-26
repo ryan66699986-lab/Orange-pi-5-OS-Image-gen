@@ -109,6 +109,48 @@ done < <(find /dev/input -maxdepth 1 -type c -name 'event*' -print 2>/dev/null |
 echo "PASS: controller is visible through native Linux input. Use evtest for every axis/button and force-feedback validation."
 EOF
 chmod 0755 /usr/local/bin/opi-controller-check
+cat > /usr/local/bin/opi-audio-initial-default <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/opi"
+state="$state_dir/audio-initial-default.env"
+[[ -e "$state" ]] && exit 0
+install -d -m0700 "$state_dir"
+for _ in {1..30}; do
+  status="$(wpctl status -n 2>/dev/null || true)"
+  sink_id="$(awk '
+    /Sinks:/ {in_sinks=1; next}
+    /Sources:/ {in_sinks=0}
+    in_sinks && tolower($0) ~ /(hdmi|displayport)/ {
+      if (match($0, /[0-9]+[.]/)) { print substr($0, RSTART, RLENGTH-1); exit }
+    }
+  ' <<<"$status")"
+  if [[ "$sink_id" =~ ^[0-9]+$ ]] && wpctl set-default "$sink_id"; then
+    sink_name="$(awk -v id="$sink_id" 'index($0, id ".") {sub(/^[^0-9]*/, ""); print; exit}' <<<"$status")"
+    printf 'HDMI_DEFAULT_SINK=%q\nSELECTED_AT=%q\n' "$sink_name" "$(date --iso-8601=seconds)" >"$state"
+    echo "Initial audio default selected: ${sink_name:-sink $sink_id}"
+    exit 0
+  fi
+  sleep 1
+done
+echo "WARN: no HDMI/DisplayPort sink became available; the one-time HDMI default remains pending" >&2
+exit 0
+EOF
+chmod 0755 /usr/local/bin/opi-audio-initial-default
+cat > /etc/systemd/user/opi-audio-initial-default.service <<'EOF'
+[Unit]
+Description=Select HDMI audio on first successful user session only
+After=pipewire.service wireplumber.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/opi-audio-initial-default
+
+[Install]
+WantedBy=default.target
+EOF
+install -d /etc/systemd/user/default.target.wants
+ln -s ../opi-audio-initial-default.service /etc/systemd/user/default.target.wants/opi-audio-initial-default.service
 cat > /usr/local/bin/opi-audio-check <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -121,6 +163,28 @@ bluetoothctl list | grep -q '^Controller ' || { echo "FAIL: no Bluetooth control
 echo "PASS: HDMI audio sink and Bluetooth audio stack are available"
 EOF
 chmod 0755 /usr/local/bin/opi-audio-check
+cat > /usr/local/bin/opi-gpu-check <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+[[ -e /dev/dri/renderD128 ]] || { echo "FAIL: DRM render node missing"; exit 1; }
+dpkg -s mesa-vulkan-drivers >/dev/null 2>&1 || { echo "FAIL: mesa-vulkan-drivers is not installed"; exit 1; }
+[[ -r /usr/share/vulkan/icd.d/panfrost_icd.json ]] || { echo "FAIL: PanVK ICD manifest missing"; exit 1; }
+log="$(mktemp)"; trap 'rm -f -- "$log"' EXIT
+timeout 30 vulkaninfo --summary >"$log" 2>&1 || { cat "$log"; echo "FAIL: vulkaninfo could not initialize PanVK"; exit 1; }
+grep -Eqi 'Mali[- ]?G610|panvk|panfrost' "$log" || { cat "$log"; echo "FAIL: Vulkan did not report the RK3588 PanVK device/driver"; exit 1; }
+! grep -Eqi 'llvmpipe|lavapipe' "$log" || { cat "$log"; echo "FAIL: software Vulkan renderer selected"; exit 1; }
+echo "PASS: PanVK hardware Vulkan renderer active"
+EOF
+chmod 0755 /usr/local/bin/opi-gpu-check
+cat > /usr/local/bin/opi-cec-check <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+compgen -G '/dev/cec*' >/dev/null || { echo "FAIL: no HDMI-CEC adapter node"; exit 1; }
+grep -Eqi 'cec|rc for' /proc/bus/input/devices || { echo "FAIL: CEC remote-control input device is not registered"; exit 1; }
+cec-ctl --show-topology >/tmp/opi-cec-topology.txt 2>&1 || { cat /tmp/opi-cec-topology.txt; echo "FAIL: HDMI-CEC adapter did not answer"; exit 1; }
+echo "PASS: HDMI-CEC adapter and remote-input integration are active"
+EOF
+chmod 0755 /usr/local/bin/opi-cec-check
 cat > /usr/local/bin/opi-nvme-check <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -165,6 +229,7 @@ lsmod | awk '{print $1}' | grep -qx uinput && pass "uinput module loaded" || fai
 lsmod | awk '{print $1}' | grep -qx uhid && pass "uhid module loaded" || fail "uhid module not loaded"
 id -nG ryan | grep -qw input && pass "ryan in input group" || fail "ryan missing input group"
 for cmd in es-de gamescope labwc opencode moonlight-qt; do command -v "$cmd" >/dev/null && pass "$cmd" || fail "$cmd missing"; done
+if /usr/local/bin/opi-gpu-check >/tmp/opi-gpu-check.log 2>&1; then pass "PanVK hardware Vulkan renderer"; else fail "GPU hardware gate failed; see /tmp/opi-gpu-check.log"; fi
 command -v gamepad-osk >/dev/null && pass "gamepad-osk" || warn "gamepad-osk missing"
 test -x /usr/local/bin/stremio && pass "Native Stremio launcher" || fail "Stremio launcher missing"
 test -x /opt/stremio/stremio && pass "Native Stremio shell" || fail "Native Stremio shell missing"
@@ -181,10 +246,12 @@ command -v wpctl >/dev/null && pass "PipeWire/WirePlumber" || fail "Audio tools 
 dpkg -s libspa-0.2-bluetooth >/dev/null 2>&1 && pass "PipeWire Bluetooth audio" || fail "Bluetooth audio plugin missing"
 if /usr/local/bin/opi-audio-check >/tmp/opi-audio-check.log 2>&1; then pass "HDMI + Bluetooth audio capability"; else fail "Audio capability gate failed; see /tmp/opi-audio-check.log"; fi
 command -v nmcli >/dev/null && pass "NetworkManager" || fail "NetworkManager missing"
+dpkg -s armbian-firmware >/dev/null 2>&1 && pass "Armbian board firmware package" || fail "armbian-firmware package missing"
+find -L /lib/firmware/brcm -type f -name 'brcmfmac*-sdio.bin*' -print -quit 2>/dev/null | grep -q . && pass "Broadcom Wi-Fi firmware payload" || fail "Broadcom Wi-Fi firmware missing"
+find -L /lib/firmware/brcm -type f -name '*.hcd' -print -quit 2>/dev/null | grep -q . && pass "Broadcom Bluetooth firmware payload" || fail "Broadcom Bluetooth firmware missing"
 nmcli -t -f DEVICE,TYPE device status 2>/dev/null | grep -q ':wifi$' && pass "Wi-Fi interface detected" || fail "No Wi-Fi interface detected"
 bluetoothctl list 2>/dev/null | grep -q '^Controller ' && pass "Bluetooth HCI controller detected" || fail "No Bluetooth HCI controller detected"
-command -v cec-ctl >/dev/null && pass "Kernel HDMI-CEC tools" || warn "cec-ctl missing"
-compgen -G '/dev/cec*' >/dev/null && pass "HDMI-CEC adapter node" || warn "No /dev/cec* node"
+if /usr/local/bin/opi-cec-check >/tmp/opi-cec-check.log 2>&1; then pass "HDMI-CEC remote input"; else fail "HDMI-CEC gate failed; see /tmp/opi-cec-check.log"; fi
 test -e /dev/dri/renderD128 && pass "DRM render node" || warn "DRM render node missing"
 info "Stremio HW decode is a hard runtime gate: opi-stremio-hwcheck and post-playback opi-stremio-session-check must PASS"
 info "Moonlight HW decode is a hard runtime gate: opi-moonlight-hwcheck and a detected-display opi-moonlight-session-check must PASS"

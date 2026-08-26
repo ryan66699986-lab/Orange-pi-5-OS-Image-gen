@@ -1,5 +1,20 @@
 # Changelog
 
+## V3.22 — current development generation
+
+- Performed a whole-image audit after V3.21, including every supplied build log, package manifest, kernel override, artifact recipe, target-root gate, offline-image gate and runtime acceptance helper.
+- Made PanVK non-optional by installing `mesa-vulkan-drivers`, requiring the Panfrost Vulkan ICD in the target and raw image, and adding `opi-gpu-check` to reject llvmpipe/lavapipe or a Vulkan device that does not identify the RK3588 Mali/PanVK stack.
+- Extended the clean ARM64 runtime-closure stage to DuckStation and ARMSX2. Both extracted AppImages must contain `AppRun`; every executable ELF is checked with bundled-library search paths before Armbian starts, and the target gate repeats the dependency scan.
+- Bound DuckStation's rolling ARM64 artifact to reviewed GitHub release ID `368956550` and SHA-256 `e4bedd6285172cc3127fb2634f646d707b5df13e2176579caa39dd9b12ae75a8`; an upstream replacement now fails before extraction.
+- Added a one-time WirePlumber policy that selects HDMI/DisplayPort on the first successful user session, then leaves later Bluetooth or HDMI choices untouched. The helper, service and global enablement are target/offline gates.
+- Added `RC_CORE` and `MEDIA_CEC_RC`, plus an on-device CEC adapter/input proof, so HDMI-CEC means remote-control input rather than only a `/dev/cec` node.
+- Require Armbian's board firmware package and Broadcom Wi-Fi/Bluetooth payload in the target and completed image; runtime validation also proves both payloads before accepting onboard wireless.
+- Reworked Moonlight output choice to rank all enabled outputs by their highest EDID-preferred/native mode rather than taking the first/current output.
+- Expanded common removable/storage support with F2FS, XFS, ISO9660 and UDF kernel gates plus F2FS/XFS userspace tools, retaining Ext, Btrfs, FAT, exFAT and NTFS support.
+- Added static regressions for every new invariant and retained native Stremio with mandatory real V4L2 Request decoding, the controller-first stack, fresh workspaces and the read-only NVMe policy.
+
+V3.22 is the next test generation, not a release declaration. A fresh completed build and all physical-board gates remain required.
+
 ## V3.21 — current development generation
 
 - Audited all 48,431 lines of the V3.20 log. Every source/build/browser/kernel preflight passed; all ten native ARM64 artifacts completed; Azahar passed all 64 tests; Steam and GE-Proton staged; artifact collision and package-solvability gates passed; and Armbian reached final target-root validation.

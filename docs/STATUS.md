@@ -1,8 +1,12 @@
 # Project status
 
-## Current generation: V3.21
+## Current generation: V3.22
 
-V3.21 is the active build under test.
+V3.22 is the active build under test.
+
+The V3.21 source correctly addressed the terminal SDL3_ttf failure, but a whole-image re-audit found several unproven assumptions that could otherwise survive a two-hour build: Panthor kernel support did not guarantee an installed PanVK userspace ICD; DuckStation and ARMSX2 were outside the merged ELF closure scan; HDMI was not actually selected as the initial audio default; CEC input integration and Broadcom firmware payloads were not gated; and the display helper selected the first/current output rather than ranking all enabled outputs.
+
+V3.22 closes each gap with independent early, target-root, offline-image and runtime checks. It also pins DuckStation's rolling ARM64 payload by release ID and digest and expands common filesystem support to F2FS, XFS, ISO9660 and UDF. See `V3.22-AUDIT.md` for the evidence and exact gate matrix.
 
 V3.20 ran for 48,431 log lines and passed every early source, package, browser, kernel and executable preflight. All ten native ARM64 artifact builds completed, including the dedicated native Stremio and Moonlight media paths; Azahar passed all 64 tests; Steam and GE-Proton staged; and artifact collision/package-solvability checks passed. Armbian built the kernel/root filesystem and reached the final target-root ELF gate. That gate found `gamepad-osk` linked to `libSDL3_ttf.so.0`, while the final target contained `libSDL3.so.0` but not the SDL3 TTF runtime. The isolated build's development package had pulled in `libsdl3-ttf0`, but runtime inference did not retain it in the generated target manifest.
 
@@ -20,7 +24,7 @@ V3.15 proved the Snes9x GCC 15 compatibility repair and completed native builds 
 
 V3.17 retains that Moonlight packaging repair and expands the early gates around the completed system specification. Official Brave and Mozilla repositories are exercised in an isolated ARM64 preflight before any long native builds. Brave is the default browser and Firefox is retained as an alternative. Moonlight remains pinned and forced through the dedicated media stack, but its stream resolution, refresh rate and HDR request are now derived from the active Wayland output and EDID at launch instead of assuming every screen is 3840×2160 HDR.
 
-The image now includes Btrfs/Ext/exFAT/NTFS/VFAT userspace support and explicit Btrfs, exFAT, NTFS3 and VFAT kernel gates. Its emergency swapfile helper recreates the swapfile with no-copy-on-write and no-compression attributes when the root filesystem is Btrfs. This makes the eventual NVMe-root migration safe without allowing the builder or current test image to touch the installed NVMe.
+The image now includes common Btrfs/Ext/FAT/exFAT/NTFS/F2FS/XFS/ISO9660/UDF support and corresponding kernel/userspace gates. Its emergency swapfile helper recreates the swapfile with no-copy-on-write and no-compression attributes when the root filesystem is Btrfs. This makes the eventual NVMe-root migration safe without allowing the builder or current test image to touch the installed NVMe.
 
 UK locale, keyboard, timezone and Wi-Fi regulatory defaults are explicit. Security-only unattended upgrades are enabled without automatic reboot. Any Linux-input controller is accepted; Guide+Start toggles the gamepad OSK. Steam is always visible in ES-DE as experimental and bootstraps on demand. ES-DE also exposes Brave, Firefox, network, audio, desktop, restart, reboot and power-off entries.
 
@@ -43,4 +47,4 @@ A successful host build and offline image QA are necessary but not sufficient. H
 - a real Moonlight stream at the display mode detected at launch, using the hardware-accelerated FFmpeg decoder; a 4K display must therefore prove a 4K stream;
 - memory/thermal behavior on the 4 GB board.
 
-Until those pass, V3.21 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.
+Until those pass, V3.22 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.

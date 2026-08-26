@@ -40,7 +40,7 @@ sudo opi-set-session desktop
 
 ## Audio
 
-HDMI/DisplayPort is the intended initial output. `Audio Settings` opens `pavucontrol`; choose a Bluetooth sink there when desired. WirePlumber remembers policy for the active session. Useful inspection commands:
+HDMI/DisplayPort is selected once when the first user session successfully exposes an HDMI/DP sink. The selection is recorded in `~/.local/state/opi/audio-initial-default.env`; the service then becomes a no-op, so later Bluetooth or HDMI choices remain the user's. `Audio Settings` opens `pavucontrol`. Useful inspection commands:
 
 ```bash
 wpctl status
@@ -74,6 +74,8 @@ The scanner creates symlinks only and does not copy or delete source ROM files. 
 | `opi-moonlight-session-check` | Prove an actual detected-mode hardware-decoded stream |
 | `opi-controller-check` | Enumerate readable Linux-input joystick devices |
 | `opi-audio-check` | Check HDMI/DP sink and Bluetooth audio capability |
+| `opi-gpu-check` | Prove PanVK hardware Vulkan and reject software rendering |
+| `opi-cec-check` | Prove CEC adapter plus Linux remote-input integration |
 | `sudo opi-nvme-check` | Read-only NVMe inventory and SMART data |
 
 ## Important logs and state
@@ -86,6 +88,7 @@ The scanner creates symlinks only and does not copy or delete source ROM files. 
 | `~/.local/state/opi/stremio.log` | Native Stremio/libmpv playback evidence |
 | `~/.local/state/opi/moonlight.log` | Moonlight wrapper/session output |
 | `~/.local/state/opi/moonlight-display.env` | Selected output, resolution, refresh and HDR detection |
+| `~/.local/state/opi/audio-initial-default.env` | One-time HDMI/DP default-selection record |
 | `/tmp/opi-*.log` | Most recent helper-specific transient evidence |
 | `/opt/opi-build-meta/` | Build manifest, source locks and codec probes installed in the image |
 

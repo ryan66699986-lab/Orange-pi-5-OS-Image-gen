@@ -50,6 +50,7 @@ Cold boot at least three times. Confirm greetd reaches ES-DE without keyboard in
 ```bash
 ls -l /dev/dri
 vulkaninfo --summary
+opi-gpu-check
 opi-media-hwtest
 ```
 
@@ -80,7 +81,7 @@ The session helper must find affirmative evidence from Stremio's embedded libmpv
 
 ### 5. Moonlight gate
 
-Launching Moonlight runs `opi-moonlight-display-auto`, which records the active output's current/preferred resolution and refresh rate and enables HDR only when the active connector's EDID advertises HDR static metadata.
+Launching Moonlight runs `opi-moonlight-display-auto`, which ranks all enabled outputs by their highest EDID-preferred/native resolution and refresh rate and enables HDR only when the selected connector's EDID advertises HDR static metadata.
 
 ```bash
 opi-moonlight-hwcheck
@@ -92,7 +93,9 @@ The session helper requires both the exact detected resolution and an affirmativ
 
 ### 6. Audio, wireless and removable storage
 
-Run `opi-audio-check` while HDMI/DisplayPort is attached. It requires an HDMI/DisplayPort PipeWire sink, a Bluetooth controller and the PipeWire Bluetooth plugin. Confirm HDMI is the initial default, then select a Bluetooth sink and verify real playback follows the user's selection.
+Run `opi-audio-check` while HDMI/DisplayPort is attached. It requires an HDMI/DisplayPort PipeWire sink, a Bluetooth controller and the PipeWire Bluetooth plugin. Confirm the one-time service recorded HDMI as the initial default, then select a Bluetooth sink, relogin/reboot, and verify the user choice is preserved.
+
+Run `opi-cec-check` with a CEC-capable television attached and verify real navigation events arrive from its remote. The adapter node alone is insufficient. Test representative Ext, Btrfs, FAT, exFAT, NTFS, F2FS, XFS, ISO9660 and UDF media when available; unsupported niche filesystems may still require explicit packages.
 
 Test Wi-Fi join/reconnect and Bluetooth controller/audio reconnection. Mount representative exFAT, NTFS, FAT and ext filesystems where available; confirm read/write behavior, USB ROM discovery and safe unmount. Run the read-only NVMe check but perform no migration.
 

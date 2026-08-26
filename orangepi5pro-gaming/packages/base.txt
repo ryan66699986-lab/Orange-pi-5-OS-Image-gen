@@ -16,6 +16,7 @@ earlyoom
 edid-decode
 evtest
 exfatprogs
+f2fs-tools
 ffmpeg
 file
 fonts-dejavu-core
@@ -57,6 +58,7 @@ locales
 lxqt-archiver
 mako-notifier
 mesa-utils
+mesa-vulkan-drivers
 mgba-qt
 mpv
 nestopia
@@ -101,6 +103,7 @@ xdg-desktop-portal-gtk
 xdg-desktop-portal-wlr
 xdg-user-dirs
 xdg-utils
+xfsprogs
 xwayland
 xz-utils
 zip

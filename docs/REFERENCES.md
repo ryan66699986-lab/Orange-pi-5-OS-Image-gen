@@ -14,6 +14,7 @@ These are upstream sources for the architecture and maintenance decisions. Versi
 - [Linux V4L2 Request API](https://docs.kernel.org/userspace-api/media/mediactl/request-api.html)
 - [Linux stateless video decoder interface](https://docs.kernel.org/userspace-api/media/v4l/dev-stateless-decoder.html)
 - [Linux stateless codec controls](https://docs.kernel.org/userspace-api/media/v4l/ext-ctrls-codec-stateless.html)
+- [Linux media/CEC remote-controller build options](https://docs.kernel.org/admin-guide/media/building.html)
 
 ## Session, interface and input
 
@@ -28,6 +29,7 @@ These are upstream sources for the architecture and maintenance decisions. Versi
 
 ## Graphics, media and streaming
 
+- [Mesa Panfrost/PanVK driver documentation](https://docs.mesa3d.org/drivers/panfrost.html)
 - [Stremio native Linux shell](https://github.com/Stremio/stremio-linux-shell)
 - [mpv upstream](https://github.com/mpv-player/mpv)
 - [Kwiboo FFmpeg fork used for V4L2 Request](https://github.com/Kwiboo/FFmpeg)

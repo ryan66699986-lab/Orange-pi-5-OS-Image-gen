@@ -64,14 +64,31 @@ except (OSError, ValueError):
     outputs = []
 enabled = [item for item in outputs if item.get("enabled")]
 if enabled:
-    display = enabled[0]
-    output = str(display.get("name") or "unknown")
-    modes = display.get("modes") or []
-    mode = next((item for item in modes if item.get("current")), None)
-    if mode is None:
+    def best_mode(display):
+        modes = display.get("modes") or []
         preferred = [item for item in modes if item.get("preferred")]
         pool = preferred or modes
-        mode = max(pool, key=lambda item: (int(item.get("width", 0)) * int(item.get("height", 0)), int(item.get("refresh", 0))), default=None)
+        return max(pool, key=lambda item: (
+            int(item.get("width", 0)) * int(item.get("height", 0)),
+            int(item.get("refresh", 0)),
+        ), default=None)
+
+    ranked = []
+    for candidate in enabled:
+        candidate_mode = best_mode(candidate)
+        if candidate_mode:
+            ranked.append((
+                int(candidate_mode.get("width", 0)) * int(candidate_mode.get("height", 0)),
+                int(candidate_mode.get("refresh", 0)),
+                str(candidate.get("name") or ""),
+                candidate,
+                candidate_mode,
+            ))
+    if ranked:
+        _, _, _, display, mode = max(ranked, key=lambda item: (item[0], item[1], item[2]))
+    else:
+        display, mode = enabled[0], None
+    output = str(display.get("name") or "unknown")
     if mode:
         width = max(1, int(mode.get("width", width)))
         height = max(1, int(mode.get("height", height)))
