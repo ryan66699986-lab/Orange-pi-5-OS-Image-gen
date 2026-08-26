@@ -22,6 +22,8 @@
 | Waybar/Fuzzel/Mako/PCManFM-Qt | Ubuntu ARM64 packages | Panel, launcher, notifications and file management | Composable desktop pieces with lower overhead than a full DE |
 | gamepad-osk | Exact `GAMEPAD_OSK_COMMIT`, native Go/CGO build | Controller keyboard and mouse | Enables controller-only operation beyond game-native UIs |
 
+The gamepad artifact explicitly declares both `libsdl3-0` and `libsdl3-ttf0`; development-package inference alone is not accepted as a runtime guarantee.
+
 ## Media and streaming
 
 | Component | Pin/source | Integration | Mandatory evidence |
@@ -67,5 +69,5 @@ See `EMULATION.md` for system mappings.
 
 - A tag is a request, not immutable proof; the resolved commit is recorded and checked at build completion.
 - A successful download is not trusted until format/architecture extraction and hashing pass.
-- A successful compilation is not enough; target runtime dependencies and offline-image files are checked separately.
+- A successful compilation is not enough; the merged artifacts are linked against a clean installation of the generated ARM64 runtime package set before Armbian starts, then target runtime dependencies and offline-image files are checked again.
 - Optional Steam/GE-Proton failure is allowed and is reported. Stremio, Moonlight, ES-DE and emulator coverage are not optional.

@@ -13,7 +13,7 @@ This is not a generic Armbian remix. It is an appliance-style image with explici
 | Item | Current state |
 |---|---|
 | Profile | `orangepi5pro-gaming` |
-| Project generation | V3.20 |
+| Project generation | V3.21 |
 | Board | Orange Pi 5 Pro, RK3588S, 4 GB |
 | Base | Armbian build framework |
 | Distribution | Ubuntu 26.04 Resolute |
@@ -26,7 +26,7 @@ This is not a generic Armbian remix. It is an appliance-style image with explici
 | Audio | PipeWire HDMI/DisplayPort plus Bluetooth audio |
 | Storage policy | SD boot/current root only during testing; final plan is SD boot + Btrfs NVMe root, later eMMC boot + Btrfs NVMe root |
 | Browser | Brave default, Firefox alternative; gamepad mouse/OSK available |
-| Status | active development; V3.20 corrects V3.19's final gamepad-mouse validation failure and is ready for a fresh build/test |
+| Status | active development; V3.21 corrects V3.20's missing gamepad-osk SDL3_ttf runtime and adds an early merged-runtime closure gate |
 
 ## Repository layout
 
@@ -81,7 +81,7 @@ The builder never writes to the Orange Pi's installed NVMe. During image develop
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Failure triage for builds and runtime faults |
 | [`docs/REFERENCES.md`](docs/REFERENCES.md) | Curated primary upstream documentation |
 | [`docs/STATUS.md`](docs/STATUS.md) | Current generation and outstanding proof |
-| [`docs/V3.20-AUDIT.md`](docs/V3.20-AUDIT.md) | Most recent full build-log audit |
+| [`docs/V3.21-AUDIT.md`](docs/V3.21-AUDIT.md) | Most recent full build-log audit |
 | [`SECURITY.md`](SECURITY.md) | Security model and responsible reporting |
 
 ## Development workflow

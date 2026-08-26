@@ -1,6 +1,17 @@
 # Changelog
 
-## V3.20 — current development generation
+## V3.21 — current development generation
+
+- Audited all 48,431 lines of the V3.20 log. Every source/build/browser/kernel preflight passed; all ten native ARM64 artifacts completed; Azahar passed all 64 tests; Steam and GE-Proton staged; artifact collision and package-solvability gates passed; and Armbian reached final target-root validation.
+- Fixed the terminal linkage failure where `gamepad-osk` resolved `libSDL3.so.0` but could not resolve `libSDL3_ttf.so.0`. The isolated build had `libsdl3-ttf-dev` and its runtime dependency, but the generated target package set did not retain `libsdl3-ttf0`.
+- Added `libsdl3-0` and `libsdl3-ttf0` to the base runtime manifest and explicitly to the gamepad artifact runtime manifest.
+- Added a pre-Armbian ARM64 merged-runtime closure stage. It installs the complete generated target package set into a clean Resolute container, overlays the built artifacts, runs `ldconfig`, scans critical custom ELF files with `ldd`, and requires resolved SDL3 plus SDL3_ttf links for `gamepad-osk`.
+- Added package, target-root linkage and completed-image file/package assertions for both SDL3 runtimes, plus static regression checks for the new early gate.
+- Retained native Stremio and mandatory real V4L2 Request proof, controller-first ES-DE/Gamescope/Labwc, standalone emulators, display-aware Moonlight, official Brave/Firefox, fresh workspaces and the read-only NVMe testing policy.
+
+V3.21 is the next test generation and is not a release declaration. A successful fresh build plus real Orange Pi hardware validation are still required.
+
+## V3.20
 
 - Audited all 48,386 lines of the V3.19 log. The official Brave/Firefox correction passed, all ten native ARM64 builds completed, Azahar passed all 64 tests, Armbian built the kernel/root filesystem, and the target installed V3.18's two missing Moonlight runtime packages before reaching the final rootfs gate.
 - Fixed the terminal false-negative `gamepad-osk` gate. The pinned upstream configuration already enabled the controller mouse as `enabled = true # ...`; the old validator incorrectly required `true` to be the final non-whitespace token.

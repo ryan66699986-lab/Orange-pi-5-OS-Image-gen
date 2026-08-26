@@ -41,6 +41,7 @@ Stages are lexically ordered and sourced by `build.sh` in one shell:
 | `30-opencode-appimages` | Download OpenCode and extract official ARM64 emulator AppImages |
 | `31-native-artifacts` | Build Snes9x, Stremio, PPSSPP, ES-DE, gamepad-osk, Moonlight and remaining native emulators |
 | `32-steam-and-merge` | Optionally seed Steam/GE-Proton and merge validated artifacts into one overlay |
+| `33-runtime-closure` | Install the complete target package manifest in clean ARM64 Resolute, overlay built artifacts and reject unresolved critical ELF dependencies before Armbian |
 | `40-rootfs-assembly` | Generate ordered Armbian rootfs customization and bundled media probes |
 | `50-final-audit-build` | Recheck source/artifact hashes and kernel requirements, then build the raw image |
 | `51-offline-image-qa` | Mount the completed raw image in a privileged container and inspect the final filesystem |
@@ -62,7 +63,7 @@ On success, expect the raw `.img`, SHA-256 companion and build metadata under `~
 
 On failure, use the newest `failed-v<version>-<timestamp>` diagnostic directory. The disposable workspace is deleted so the next run cannot accidentally resume it. Diagnose the earliest real failure as described in `TROUBLESHOOTING.md`.
 
-V3.20 retains Snes9x first among native artifacts so the GCC 15/glslang compatibility gate is exercised before the long Stremio and emulator build sequence. It validates generated launchers from artifact recipes and requires their destination directories before redirection. The official Brave and Firefox ARM64 repositories are installed in an isolated preflight before native compilation starts. Brave's exact release-APT primary-key set is validated separately from its installer-script signing key. Moonlight's SDL2_ttf and Qt Quick Controls runtime packages are explicit early package-preflight inputs, not recommendations or inferred-only dependencies. The gamepad configuration explicitly enables controller-mouse support and is tested against upstream-style inline comments. Do not reuse any earlier version's Armbian workspace or artifacts.
+V3.21 retains Snes9x first among native artifacts so the GCC 15/glslang compatibility gate is exercised before the long Stremio and emulator build sequence. It validates generated launchers from artifact recipes and requires their destination directories before redirection. The official Brave and Firefox ARM64 repositories are installed in an isolated preflight before native compilation starts. Brave's exact release-APT primary-key set is validated separately from its installer-script signing key. Moonlight's SDL2_ttf and Qt Quick Controls and gamepad-osk's SDL3/SDL3_ttf runtime packages are explicit early package-preflight inputs, not recommendations or inferred-only dependencies. The merged-runtime closure stage installs the full generated runtime manifest and checks custom ELF linkage before invoking the expensive Armbian build. The gamepad configuration explicitly enables controller-mouse support and is tested against upstream-style inline comments. Do not reuse any earlier version's Armbian workspace or artifacts.
 
 The builder does not touch the Orange Pi's installed NVMe. Storage migration is a post-validation, on-device operation and is outside image generation.
 

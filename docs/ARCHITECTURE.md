@@ -19,14 +19,15 @@ The profile is intentionally separated into reviewable inputs:
 Git profile inputs
   → host/source/package/browser/kernel preflights
   → isolated ARM64 artifact builds
-  → overlay and rootfs customization generation
+  → merged-overlay ARM64 runtime closure
+  → rootfs customization generation
   → fresh Armbian kernel/rootfs/image build
   → target-root gates
   → raw-image offline QA
   → image + checksum + manifest
 ```
 
-Native artifacts are built in isolated Ubuntu Resolute ARM64 containers through binfmt/QEMU. This catches architecture and package-resolution faults without contaminating the host. The Armbian image itself is built in its own fresh workspace. Artifact build success, target dependency success and offline image presence are distinct gates.
+Native artifacts are built in isolated Ubuntu Resolute ARM64 containers through binfmt/QEMU. This catches architecture and package-resolution faults without contaminating the host. After merge, a separate clean ARM64 container installs the complete generated runtime package manifest, overlays the artifacts and checks critical ELF linkage. This prevents a development-only library from surviving the artifact build but disappearing from the target. The Armbian image itself is built in its own fresh workspace. Artifact build success, merged runtime closure, target dependency success and offline image presence are distinct gates.
 
 ## Runtime session topology
 
