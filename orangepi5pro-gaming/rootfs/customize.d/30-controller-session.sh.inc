@@ -63,13 +63,18 @@ set +e
 gamescope -f -- /usr/local/bin/opi-gaming-child 2> >(tee -a "$HOME/.local/state/opi/gamescope.log" >&2)
 rc=$?
 set -e
-printf 'Gamescope exited with status %s; falling back to Labwc Desktop Mode\n' "$rc" >> "$HOME/.local/state/opi/gamescope.log"
-exec /usr/local/bin/opi-desktop-session
+printf 'Gamescope session exited with status %s\n' "$rc" >> "$HOME/.local/state/opi/gamescope.log"
+if (( rc == 0 )); then
+    exec /usr/local/bin/opi-desktop-session
+fi
+printf 'Gamescope failure detected; launching ES-DE directly under Labwc\n' >> "$HOME/.local/state/opi/gamescope.log"
+exec /usr/local/bin/opi-direct-gaming-session
 EOF
 chmod 0755 /usr/local/bin/opi-gaming-session
 cat > /usr/local/bin/opi-labwc-startup <<'EOF'
 #!/usr/bin/env bash
 set -u
+mkdir -p "$HOME/.local/state/opi"
 swaybg -c '#20242b' >/dev/null 2>&1 &
 waybar >/dev/null 2>&1 &
 nm-applet --indicator >/dev/null 2>&1 &
@@ -80,14 +85,33 @@ gamepad-osk --daemon --config /etc/gamepad-osk/config >/dev/null 2>&1 &
 if [[ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ]]; then
     /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1 &
 fi
+if [[ "${OPI_DIRECT_GAMING:-0}" == 1 ]]; then
+    /usr/local/bin/opi-rom-scan >/dev/null 2>&1 || true
+    es-de >>"$HOME/.local/state/opi/es-de-direct.log" 2>&1 &
+fi
 EOF
 chmod 0755 /usr/local/bin/opi-labwc-startup
+cat > /usr/local/bin/opi-direct-gaming-session <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+export XDG_SESSION_TYPE=wayland
+export XDG_SESSION_DESKTOP=labwc
+export XDG_CURRENT_DESKTOP=labwc
+export OPI_DIRECT_GAMING=1
+export SDL_AUDIODRIVER=pipewire
+export SDL_VIDEODRIVER=wayland,x11
+export QT_QPA_PLATFORM='wayland;xcb'
+export MOZ_ENABLE_WAYLAND=1
+exec labwc -s /usr/local/bin/opi-labwc-startup
+EOF
+chmod 0755 /usr/local/bin/opi-direct-gaming-session
 cat > /usr/local/bin/opi-desktop-session <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 export XDG_SESSION_TYPE=wayland
 export XDG_SESSION_DESKTOP=labwc
 export XDG_CURRENT_DESKTOP=labwc
+export OPI_DIRECT_GAMING=0
 export SDL_AUDIODRIVER=pipewire
 export SDL_VIDEODRIVER=wayland,x11
 export QT_QPA_PLATFORM='wayland;xcb'
@@ -104,6 +128,14 @@ Exec=/usr/local/bin/opi-gaming-session
 Type=Application
 DesktopNames=OPiGaming
 EOF
+cat > /usr/share/wayland-sessions/opi-direct-gaming.desktop <<'EOF'
+[Desktop Entry]
+Name=OPi Direct Gaming Mode
+Comment=ES-DE directly under Labwc without Gamescope
+Exec=/usr/local/bin/opi-direct-gaming-session
+Type=Application
+DesktopNames=Labwc
+EOF
 cat > /usr/share/wayland-sessions/opi-labwc.desktop <<'EOF'
 [Desktop Entry]
 Name=OPi Labwc Desktop
@@ -115,7 +147,7 @@ EOF
 install -d -o ryan -g ryan /home/ryan/.config/labwc
 cat > /home/ryan/.config/labwc/rc.xml <<'EOF'
 <?xml version="1.0"?>
-<labwc_config><core><reuseOutputMode>yes</reuseOutputMode><xwaylandPersistence>no</xwaylandPersistence></core><keyboard><keybind key="W-Return"><action name="Execute" command="kitty"/></keybind><keybind key="W-d"><action name="Execute" command="fuzzel"/></keybind><keybind key="W-e"><action name="Execute" command="pcmanfm-qt"/></keybind><keybind key="W-g"><action name="Execute" command="gaming-mode"/></keybind></keyboard></labwc_config>
+<labwc_config><core><reuseOutputMode>yes</reuseOutputMode><xwaylandPersistence>no</xwaylandPersistence></core><keyboard><keybind key="W-Return"><action name="Execute" command="kitty"/></keybind><keybind key="W-d"><action name="Execute" command="fuzzel"/></keybind><keybind key="W-e"><action name="Execute" command="pcmanfm-qt"/></keybind><keybind key="W-g"><action name="Execute" command="gaming-mode"/></keybind><keybind key="W-r"><action name="Execute" command="direct-gaming-mode"/></keybind></keyboard></labwc_config>
 EOF
 install -d -o ryan -g ryan /home/ryan/.config/waybar
 cat > /home/ryan/.config/waybar/config.jsonc <<'EOF'
@@ -132,13 +164,13 @@ cat > /usr/local/bin/opi-session-dispatch <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 mode="$(cat /etc/opi/session-mode 2>/dev/null || echo gaming)"
-case "$mode" in gaming) exec /usr/local/bin/opi-gaming-session ;; desktop) exec /usr/local/bin/opi-desktop-session ;; *) exec /usr/local/bin/opi-gaming-session ;; esac
+case "$mode" in gaming) exec /usr/local/bin/opi-gaming-session ;; direct) exec /usr/local/bin/opi-direct-gaming-session ;; desktop) exec /usr/local/bin/opi-desktop-session ;; *) exec /usr/local/bin/opi-gaming-session ;; esac
 EOF
 chmod 0755 /usr/local/bin/opi-session-dispatch
 cat > /usr/local/sbin/opi-set-session <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-case "${1:-}" in gaming|desktop) mode="$1" ;; *) echo "Usage: opi-set-session gaming|desktop" >&2; exit 2 ;; esac
+case "${1:-}" in gaming|direct|desktop) mode="$1" ;; *) echo "Usage: opi-set-session gaming|direct|desktop" >&2; exit 2 ;; esac
 printf '%s\n' "$mode" > /etc/opi/session-mode
 rm -f /run/greetd-opi-initial
 EOF
@@ -168,5 +200,11 @@ set -Eeuo pipefail
 sudo /usr/local/sbin/opi-set-session desktop
 sudo systemctl restart greetd
 EOF
-chmod 0755 /usr/local/bin/gaming-mode /usr/local/bin/desktop-mode
+cat > /usr/local/bin/direct-gaming-mode <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+sudo /usr/local/sbin/opi-set-session direct
+sudo systemctl restart greetd
+EOF
+chmod 0755 /usr/local/bin/gaming-mode /usr/local/bin/direct-gaming-mode /usr/local/bin/desktop-mode
 chown -R ryan:ryan /home/ryan/.config

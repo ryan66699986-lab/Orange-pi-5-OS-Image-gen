@@ -13,6 +13,8 @@ These are upstream sources for the architecture and maintenance decisions. Versi
 - [ccache manual](https://ccache.dev/manual/latest.html)
 - [Armbian user configurations and `customize-image.sh`](https://docs.armbian.com/build-framework/user-configurations/)
 - [Armbian getting started and installer overview](https://docs.armbian.com/getting-started/)
+- [Armbian update controls](https://docs.armbian.com/config/updates/)
+- [Armbian upgrade and distribution-upgrade policy](https://docs.armbian.com/User-Guide_FAQ/)
 - [Linux V4L2 Request API](https://docs.kernel.org/userspace-api/media/mediactl/request-api.html)
 - [Linux stateless video decoder interface](https://docs.kernel.org/userspace-api/media/v4l/dev-stateless-decoder.html)
 - [Linux stateless codec controls](https://docs.kernel.org/userspace-api/media/v4l/ext-ctrls-codec-stateless.html)

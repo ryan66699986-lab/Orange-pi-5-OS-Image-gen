@@ -186,7 +186,8 @@ for spec in SOUND:m SND:m SND_SOC:m SND_SOC_HDMI_CODEC:m SND_SOC_ROCKCHIP_I2S_TD
 done
 
 ! grep -q '^epiphany-browser$' "$PROFILE/packages/base.txt"
-for pkg in btrfs-progs dosfstools e2fsprogs exfatprogs ntfs-3g f2fs-tools xfsprogs mesa-vulkan-drivers unattended-upgrades wireless-regdb iw wlr-randr edid-decode locales; do
+LC_ALL=C sort -c "$PROFILE/packages/base.txt"
+for pkg in btrfs-progs dosfstools e2fsprogs exfatprogs ntfs-3g f2fs-tools xfsprogs mesa-vulkan-drivers unattended-upgrades wireless-regdb iw wlr-randr edid-decode locales jq procps; do
   grep -qx "$pkg" "$PROFILE/packages/base.txt"
 done
 for pkg in libsdl2-ttf-2.0-0 libqt6quickcontrols2-6; do
@@ -374,7 +375,7 @@ for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
   grep -Fq "$unit" "$PROFILE/stages/51-offline-image-qa.sh"
 done
 grep -Fq 'branches: [main]' "$ROOT/.github/workflows/ci.yml"
-grep -qx '3.25' "$ROOT/VERSION"
+grep -qx '3.26' "$ROOT/VERSION"
 grep -Fq 'CACHE_ROOT="${OPI5PRO_CACHE_ROOT:-${HOME}/.cache/opi5pro-builder}"' "$PROFILE/profile.env"
 grep -Fq 'os.path.realpath' "$PROFILE/stages/01-cleanup-workspace.sh"
 grep -Fq '"$REPO_ROOT"|"$REPO_ROOT"/*' "$PROFILE/stages/01-cleanup-workspace.sh"
@@ -387,10 +388,78 @@ grep -Fq 'while (( TIMING_FLUSHED_COUNT < ${#TIMING_ROWS[@]} )); do' "$ROOT/buil
 grep -Fq 'Verified download cache hit' "$PROFILE/stages/00-common.sh"
 grep -Fq 'Discarding invalid cached download' "$PROFILE/stages/00-common.sh"
 ! grep -Fq 'CACHE_ROOT="${WORK}' "$PROFILE/profile.env"
+grep -Fq 'ARMBIAN_MIRROR="${SOURCE_CACHE}/armbian-build.git"' "$PROFILE/profile.env"
+grep -Fq 'git_net clone --mirror "$ARMBIAN_REPOSITORY" "$mirror_tmp"' "$PROFILE/stages/20-armbian-kernel.sh"
+grep -Fq 'rev-parse --is-bare-repository' "$PROFILE/stages/20-armbian-kernel.sh"
+grep -Fq 'git -C "$ARMBIAN_MIRROR" fsck --connectivity-only --no-dangling' "$PROFILE/stages/20-armbian-kernel.sh"
+grep -Fq 'git_net clone --no-local --no-hardlinks "$ARMBIAN_MIRROR" "$ARMBIAN"' "$PROFILE/stages/20-armbian-kernel.sh"
+grep -Fq 'checkout --detach "$ARMBIAN_COMMIT"' "$PROFILE/stages/20-armbian-kernel.sh"
+grep -Fq 'Fresh Armbian checkout is unexpectedly dirty' "$PROFILE/stages/20-armbian-kernel.sh"
+! grep -Fq 'ARMBIAN_MIRROR="${WORK}' "$PROFILE/profile.env"
+grep -Fq 'exec /usr/local/bin/opi-direct-gaming-session' "$PROFILE/rootfs/customize.d/30-controller-session.sh.inc"
+grep -Fq 'OPI_DIRECT_GAMING=1' "$PROFILE/rootfs/customize.d/30-controller-session.sh.inc"
+grep -Fq 'gaming|direct|desktop' "$PROFILE/rootfs/customize.d/30-controller-session.sh.inc"
+grep -Fq 'Direct-Gaming-Mode.sh' "$PROFILE/rootfs/customize.d/60-performance-services.sh.inc"
+for tier in core required experimental; do grep -q "^${tier}[[:space:]]" "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"; done
+grep -Fq 'apt-get -s upgrade' "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"
+grep -Fq 'apt-get upgrade' "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"
+grep -Fq 'apt-mark showhold' "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"
+grep -Fq 'Prompt=never' "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"
+grep -Fq 'opi-appliance-health' "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"
+grep -Fq 'linkage="$(ldd "$elf" 2>&1)"' "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"
+grep -Fq 'Build source lock JSON' "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"
+grep -Fq 'Image-managed source builds remain pinned' "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"
+! grep -Eq 'dist-upgrade|full-upgrade|do-release-upgrade' "$PROFILE/rootfs/customize.d/45-appliance-maintenance.sh.inc"
+grep -Fq 'V3.26 appliance policy missing from final image' "$PROFILE/stages/51-offline-image-qa.sh"
 ! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/stages/00-common.sh"
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/recipes/arm64-common.sh"
 ! grep -ERn --include='*.sh' '^[[:space:]]*git[[:space:]]+(clone|fetch|ls-remote)' "$PROFILE/stages" "$PROFILE/recipes"
+
+# Exercise the hybrid Armbian source model with a local fixture. The bare
+# mirror may persist, but each output is a detached, clean, independent clone.
+mkdir -p "$tmpdir/armbian-fixture-source"
+git -C "$tmpdir/armbian-fixture-source" init -q
+git -C "$tmpdir/armbian-fixture-source" config user.name fixture
+git -C "$tmpdir/armbian-fixture-source" config user.email fixture@example.invalid
+printf 'fixture\n' > "$tmpdir/armbian-fixture-source/README"
+git -C "$tmpdir/armbian-fixture-source" add README
+git -C "$tmpdir/armbian-fixture-source" commit -qm fixture
+git clone -q --mirror "$tmpdir/armbian-fixture-source" "$tmpdir/armbian-fixture-mirror.git"
+git -C "$tmpdir/armbian-fixture-mirror.git" fsck --connectivity-only --no-dangling >/dev/null
+fixture_commit="$(git -C "$tmpdir/armbian-fixture-mirror.git" rev-parse HEAD)"
+git clone -q --no-local --no-hardlinks "$tmpdir/armbian-fixture-mirror.git" "$tmpdir/armbian-fixture-output"
+git -C "$tmpdir/armbian-fixture-output" checkout -q --detach "$fixture_commit"
+[[ "$(git -C "$tmpdir/armbian-fixture-output" rev-parse HEAD)" == "$fixture_commit" ]]
+[[ -z "$(git -C "$tmpdir/armbian-fixture-output" status --porcelain)" ]]
+[[ ! -e "$tmpdir/armbian-fixture-output/.git/objects/info/alternates" ]]
+echo "Hybrid Armbian mirror/fresh-checkout checks: PASS"
+
+# Execute the generated Gamescope wrapper twice. A nonzero compositor failure
+# must enter direct Labwc gaming; a normal exit must enter Desktop Mode.
+awk '/^cat > \/usr\/local\/bin\/opi-gaming-session <<'"'"'EOF'"'"'$/{copy=1;next} copy && /^EOF$/{exit} copy{print}' \
+  "$PROFILE/rootfs/customize.d/30-controller-session.sh.inc" > "$tmpdir/opi-gaming-session"
+mkdir -p "$tmpdir/session-bin" "$tmpdir/session-home"
+cat > "$tmpdir/session-bin/gamescope" <<'EOF'
+#!/usr/bin/env bash
+exit "${MOCK_GAMESCOPE_RC:?}"
+EOF
+cat > "$tmpdir/session-direct" <<EOF
+#!/usr/bin/env bash
+printf 'direct\n' > '$tmpdir/session-result'
+EOF
+cat > "$tmpdir/session-desktop" <<EOF
+#!/usr/bin/env bash
+printf 'desktop\n' > '$tmpdir/session-result'
+EOF
+chmod 0755 "$tmpdir/opi-gaming-session" "$tmpdir/session-bin/gamescope" "$tmpdir/session-direct" "$tmpdir/session-desktop"
+sed -i "s#/usr/local/bin/opi-direct-gaming-session#$tmpdir/session-direct#g; s#/usr/local/bin/opi-desktop-session#$tmpdir/session-desktop#g" "$tmpdir/opi-gaming-session"
+PATH="$tmpdir/session-bin:$PATH" HOME="$tmpdir/session-home" MOCK_GAMESCOPE_RC=1 "$tmpdir/opi-gaming-session"
+grep -qx direct "$tmpdir/session-result"
+PATH="$tmpdir/session-bin:$PATH" HOME="$tmpdir/session-home" MOCK_GAMESCOPE_RC=0 "$tmpdir/opi-gaming-session"
+grep -qx desktop "$tmpdir/session-result"
+grep -Fq 'Gamescope failure detected' "$tmpdir/session-home/.local/state/opi/gamescope.log"
+echo "Gamescope/direct-Labwc fallback checks: PASS"
 
 # Exercise the exact gamepad mouse normalizer against both a changed upstream
 # default and a config with no mouse section. Also prove the final validator
@@ -567,6 +636,7 @@ required = {
     "docs/V3.23-AUDIT.md",
     "docs/V3.24-AUDIT.md",
     "docs/V3.25-AUDIT.md",
+    "docs/V3.26-AUDIT.md",
 }
 missing_required = sorted(path for path in required if not (root / path).is_file())
 if missing_required:

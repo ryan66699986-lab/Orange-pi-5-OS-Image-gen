@@ -15,13 +15,13 @@ The builder prompts for the initial `ryan` password, hashes it immediately, and 
 
 Characters are not echoed. The prompt is for the Orange Pi account, not GitHub. Both reads use `/dev/tty` so stage-list input cannot be consumed accidentally.
 
-## Fresh workspace invariant
+## Hybrid persistence invariant
 
-Every attempt uses a fresh versioned workspace under the builder user's home directory. A failed workspace is diagnostic-only and is removed before the next attempt. Do not manually resume a failed Armbian tree.
+Every attempt uses a fresh versioned output workspace under the builder user's home directory. A failed checkout, rootfs, application build or artifact tree is diagnostic-only and is removed before the next attempt. Do not manually resume those outputs.
 
 Generated images and diagnostic bundles are written outside the repository under `~/opi5pro-images`.
 
-The persistent cache root defaults to `~/.cache/opi5pro-builder` and is deliberately outside the repository and workspace. It may contain verified downloads, an input-keyed dependency image, compiler results and language package caches. It never contains a source checkout, native application output, merged root, Armbian tree or image. `OPI5PRO_CACHE_ROOT` may select another absolute dedicated directory; the builder canonicalises it and rejects `/`, the home directory, repository, workspace and output tree as unsafe cache roots.
+The persistent cache root defaults to `~/.cache/opi5pro-builder` and is deliberately outside the repository and workspace. It may contain verified downloads, an input-keyed dependency image, compiler/language caches and the official bare Armbian Git mirror. It never contains a mutable build checkout, userpatch tree, native application output, merged root, target root or image. `OPI5PRO_CACHE_ROOT` may select another absolute dedicated directory; the builder canonicalises it and rejects `/`, the home directory, repository, workspace and output tree as unsafe cache roots.
 
 ## Pipeline
 
@@ -39,7 +39,7 @@ Stages are lexically ordered and sourced by `build.sh` in one shell:
 | `16-executable-preflight` | Resolve distro commands and paths used by launchers/gates |
 | `17-browser-preflight` | Validate official Brave/Mozilla keys, repos, ARM64 packages and executables |
 | `18-builder-dependency-cache` | Pull the ARM64 base, resolve an input key, create or verify the dependency-only builder image |
-| `20-armbian-kernel` | Clone fresh Armbian, create `userpatches`, inspect edge kernel and stage explicit Kconfig |
+| `20-armbian-kernel` | Update/verify the official bare Armbian mirror, create a fresh detached checkout, inspect edge kernel and stage explicit Kconfig |
 | `21-arm64-build-helper` | Prepare reusable isolated ARM64 recipe runner |
 | `30-opencode-appimages` | Download OpenCode and extract official ARM64 emulator AppImages |
 | `31-native-artifacts` | Build Snes9x, Stremio, PPSSPP, ES-DE, gamepad-osk, Moonlight and remaining native emulators |
@@ -51,7 +51,7 @@ Stages are lexically ordered and sourced by `build.sh` in one shell:
 
 Snes9x is intentionally first because its pinned legacy dependency chain has been a high-risk GCC/CMake compatibility point. Stremio follows before other long builds because media is a hard requirement.
 
-Native artifacts remain sequential and retain the global eight-job cap. V3.25 does not speculate about parallel scheduling without host utilisation and memory evidence. Every stage emits a machine-readable elapsed-time row. Failed diagnostics contain `stage-timings.tsv`; successful output contains `<image-name>-STAGE-TIMINGS.tsv`.
+Native artifacts remain sequential and retain the global eight-job cap. V3.26 does not speculate about parallel scheduling without host utilisation and memory evidence. Every stage emits a machine-readable elapsed-time row. Failed diagnostics contain `stage-timings.tsv`; successful output contains `<image-name>-STAGE-TIMINGS.tsv`.
 
 ## Safe cache contract
 
@@ -60,6 +60,7 @@ Native artifacts remain sequential and retain the global eight-job cap. V3.25 do
 - Cargo and Go reuse only their external registry/module/compiler caches. Their source and target/output directories are recreated.
 - Downloads are keyed by their URL and accompanied by a SHA-256 sidecar. A corrupt hit is discarded. Assets with a reviewed digest, including DuckStation, must also match that digest.
 - Armbian runs with `USE_CCACHE=yes`; its build root and target root remain fresh.
+- The bare Armbian mirror is origin-checked, remotely updated, connectivity-verified and copied into a new detached checkout. The checkout does not share mutable objects or output state with a failed build.
 - Cache reuse never bypasses source locks, artifact architecture checks, ELF owner closure, target-root validation or raw-image QA.
 
 ## Reproducibility and manifests
@@ -77,7 +78,7 @@ On success, expect the raw `.img`, SHA-256 companion and build metadata under `~
 
 On failure, use the newest `failed-v<version>-<timestamp>` diagnostic directory. The disposable workspace is deleted so the next run cannot accidentally resume it. Diagnose the earliest real failure as described in `TROUBLESHOOTING.md`.
 
-V3.25 retains V3.24's complete runtime-package contract and every hardware/runtime gate. Snes9x stays first, all ten native artifacts are rebuilt, and DuckStation's rolling ARM64 artifact must match its reviewed digest. The cache layer changes only how previously verified inputs and compiler results reach an otherwise fresh build. Do not reuse any earlier version's Armbian workspace or artifacts.
+V3.26 retains V3.24's complete runtime-package contract and V3.25's verified caches. Snes9x stays first, all ten native artifacts are rebuilt, and DuckStation's rolling ARM64 artifact must match its reviewed digest. Only immutable source acquisition is persistent; do not reuse any earlier version's checkout, userpatches, rootfs or artifacts.
 
 The builder does not touch the Orange Pi's installed NVMe. Storage migration is a post-validation, on-device operation and is outside image generation.
 

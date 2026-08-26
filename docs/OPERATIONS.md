@@ -2,7 +2,7 @@
 
 ## Normal startup
 
-greetd uses an initial session for `ryan`, reads `/etc/opi/session-mode`, and defaults to `/usr/local/bin/opi-gaming-session`. Gamescope launches ES-DE while `gamepad-osk` and udiskie run as supervised children. If Gamescope exits, the wrapper records its status and falls back to Labwc.
+greetd uses an initial session for `ryan`, reads `/etc/opi/session-mode`, and defaults to `/usr/local/bin/opi-gaming-session`. Gamescope launches ES-DE while `gamepad-osk` and udiskie run as supervised children. A nonzero Gamescope failure launches ES-DE directly under Labwc; a normal exit enters the Labwc desktop.
 
 At later logins, tuigreet remains available as the recovery login/session selector. The password entered during image construction is the local `ryan` account password.
 
@@ -21,6 +21,7 @@ From a terminal:
 
 ```bash
 gaming-mode
+direct-gaming-mode
 desktop-mode
 ```
 
@@ -28,6 +29,7 @@ These commands set the persistent mode and restart greetd, ending the current gr
 
 ```bash
 sudo opi-set-session gaming
+sudo opi-set-session direct
 sudo opi-set-session desktop
 ```
 
@@ -77,6 +79,9 @@ The scanner creates symlinks only and does not copy or delete source ROM files. 
 | `opi-gpu-check` | Prove PanVK hardware Vulkan and reject software rendering |
 | `opi-cec-check` | Prove CEC adapter plus Linux remote-input integration |
 | `sudo opi-nvme-check` | Read-only NVMe inventory and SMART data |
+| `opi-appliance-health [--strict]` | Classify core, required and experimental appliance health |
+| `sudo opi-update check` | Refresh metadata, simulate same-release upgrades and show pinned project components |
+| `sudo opi-update apply` | Attended same-release package maintenance with pre/post health checks |
 
 ## Important logs and state
 
@@ -91,22 +96,27 @@ The scanner creates symlinks only and does not copy or delete source ROM files. 
 | `~/.local/state/opi/audio-initial-default.env` | One-time HDMI/DP default-selection record |
 | `/tmp/opi-*.log` | Most recent helper-specific transient evidence |
 | `/opt/opi-build-meta/` | Build manifest, source locks and codec probes installed in the image |
+| `/var/log/opi-update/` | Update simulations, package inventories and post-update results |
 
 ## Updates
 
-Security updates are installed automatically without automatic reboot. For manual review:
+Security updates are installed automatically without automatic reboot. For ordinary Armbian, Ubuntu, Brave, Firefox and other APT-managed maintenance, switch to Labwc Desktop Mode, close gaming/media/browser applications, then use:
 
 ```bash
-apt list --upgradable
-sudo unattended-upgrade --dry-run --debug
+sudo opi-update check
+sudo opi-update apply
 ```
 
-Do not perform a broad distribution upgrade on a known-good image without creating a new project generation and repeating validation. Kernel, Mesa, FFmpeg/mpv, Stremio and Moonlight updates can change hard release gates even when package installation succeeds.
+`apply` repeats the simulation, displays and respects package holds, requires at least 1.5 GiB free, requires the literal confirmation `UPDATE`, records package versions before/after, runs `dpkg --audit`, and repeats core health checks. It never performs `dist-upgrade`, `full-upgrade` or `do-release-upgrade`; `/etc/update-manager/release-upgrades` is set to `Prompt=never`. Change Armbian's firmware hold policy separately and deliberately through its documented update controls—`opi-update` does not silently unhold boot-critical packages.
+
+This is rolling maintenance within Ubuntu Resolute, not a rolling distribution. APT updates Armbian kernel/firmware/BSP, Ubuntu packages, both browsers and distro-packaged emulators. Source-built Stremio, its dedicated FFmpeg/mpv, Moonlight and the source-built emulator artifacts remain pinned in `/opt/opi-build-meta/versions.lock.json`. They must eventually be updated through a separately signed, board-tested project bundle; `opi-update` reports this boundary instead of silently substituting incompatible upstream binaries.
+
+Do not manually change the Ubuntu suite on a known-good appliance. Armbian documents distribution upgrades as outside its supported scope, and a suite transition can invalidate the custom media ABI, Mesa/PanVK, kernel and browser repository contract.
 
 ## Recovery principles
 
 - Keep the last known-good SD image until the replacement passes cold boot and validation.
-- Prefer Desktop Mode after a Gamescope failure; prefer a TTY if the desktop also fails.
+- Prefer Direct Gaming Mode when Gamescope alone fails, Desktop Mode for maintenance, and a TTY if Labwc also fails.
 - Do not erase validation logs before collecting them.
 - Do not run storage migration as a troubleshooting step.
 - Steam failures are isolated/experimental; do not change the production media or graphics stack merely to make Steam work.

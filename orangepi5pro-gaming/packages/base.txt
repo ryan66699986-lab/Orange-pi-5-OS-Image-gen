@@ -37,6 +37,7 @@ gvfs
 gvfs-backends
 iw
 joystick
+jq
 keyboard-configuration
 kitty
 kmod
@@ -44,8 +45,8 @@ labwc
 libegl1
 libgl1
 libgles2
-libglib2.0-bin
 libglew2.2
+libglib2.0-bin
 libhidapi-hidraw0
 libhidapi-libusb0
 libqt6quickcontrols2-6
@@ -77,6 +78,7 @@ pipewire-alsa
 pipewire-pulse
 policykit-1-gnome
 polkitd
+procps
 python3
 qt6-wayland
 sameboy

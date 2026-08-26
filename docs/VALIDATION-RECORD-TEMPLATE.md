@@ -42,6 +42,9 @@ Copy this file for each candidate. Store completed records with the image eviden
 |---|---|
 | Three cold boots | |
 | Gamescope → ES-DE, no fallback | |
+| Direct Gaming Mode under Labwc | |
+| Simulated Gamescope failure → direct fallback | |
+| Normal Gamescope exit → Labwc desktop | |
 | `systemctl --failed` | |
 | Panthor DRM/render node | |
 | PanVK/Vulkan summary | |
@@ -121,7 +124,11 @@ Copy this file for each candidate. Store completed records with the image eviden
 | Firefox controller/OSK/audio/video | |
 | Network/audio settings from ES-DE | |
 | Kitty/OpenCode | |
-| Security update policy | |
+| `opi-appliance-health --strict` | |
+| `opi-update check` | |
+| Held packages reviewed | |
+| Controlled update/apply/reboot, if available | |
+| Post-update affected validation | |
 | Steam visible/isolated experimental result | |
 
 ## Stability

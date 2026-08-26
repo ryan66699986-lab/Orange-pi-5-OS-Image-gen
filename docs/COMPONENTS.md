@@ -6,7 +6,7 @@
 
 | Component | Source/acquisition | Role | Relevant gate |
 |---|---|---|---|
-| Armbian build framework | Fresh shallow clone of `armbian/build` | Orange Pi boot chain, kernel/rootfs/image assembly | Fresh tree, board/branch/release inputs and completed raw-image QA |
+| Armbian build framework | Verified persistent bare mirror of `armbian/build`, cloned into a fresh detached checkout for each build | Orange Pi boot chain, kernel/rootfs/image assembly | Official origin, mirror integrity, fresh clean tree, board/branch/release inputs and completed raw-image QA |
 | Ubuntu 26.04 Resolute ARM64 | Armbian/Ubuntu archives | Runtime and build package base | Early package solver plus target `dpkg` assertions |
 | Linux edge | Armbian `rockchip64-edge` configuration plus local overrides | Panthor, VDEC, DRM, audio, CEC, input, wireless and filesystems | Version ≥7.0 and exact Kconfig symbol checks before/after build |
 | Mesa/PanVK userspace | Explicit Ubuntu `mesa-vulkan-drivers` package | Vulkan/OpenGL/Wayland graphics | Panfrost ICD file plus `opi-gpu-check`; software Vulkan is rejected |

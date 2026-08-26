@@ -107,7 +107,21 @@ Follow `EMULATION.md`. Launch representative legal content for every system thro
 
 Enter Labwc from ES-DE, launch Kitty/OpenCode, file manager, both browsers, network and audio tools, then return to Gaming Mode. Verify controller mouse/OSK text entry and browser audio/video. Confirm Gamescope fallback is usable but do not intentionally leave a real Gamescope fault unresolved.
 
-### 9. Memory and thermal soak
+Test both recovery paths deliberately: select `Direct Gaming Mode` and verify ES-DE runs under Labwc without Gamescope, then simulate a Gamescope launch failure and verify the session automatically reaches the same direct path. A normal Gamescope/ES-DE exit must reach the Labwc desktop rather than being classified as a crash.
+
+### 9. Appliance health and updates
+
+Run and retain:
+
+```bash
+sudo opi-appliance-health --strict
+sudo opi-update check
+apt-mark showhold
+```
+
+The health report must keep core, required and experimental features distinct. `opi-update check` must show the same-release Ubuntu package plan without applying it and must disclose held packages and image-managed pinned components. When an update is actually available, perform one controlled `sudo opi-update apply` test from Labwc with gaming/media applications closed, retain the before/after package manifests and update log, reboot, then repeat strict health plus all validation affected by the changed packages. The updater must remain on Ubuntu Resolute; release upgrades and automatic replacement of source-built image components are outside this mechanism.
+
+### 10. Memory and thermal soak
 
 Run demanding emulation, Stremio 4K and Moonlight sessions long enough to reach thermal equilibrium. Record temperature, throttling/kernel messages, memory, zram/swap activity and earlyoom events. The Geekworm 515 fan must operate. A test that survives only by sustained disk-swap thrashing is not acceptable.
 
@@ -142,6 +156,7 @@ For every candidate, archive a compact record containing:
 | Controllers | model/transport, input/OSK/mouse/rumble result |
 | Audio | HDMI/DP and Bluetooth device/result |
 | Emulators | system, test content, renderer/resolution/performance/result |
+| Maintenance | strict appliance health, update check/apply result, held packages and post-reboot result |
 | Stability | duration, peak temperature, memory/swap and kernel/systemd failures |
 | Exceptions | exact known limitation, owner and whether it blocks release |
 

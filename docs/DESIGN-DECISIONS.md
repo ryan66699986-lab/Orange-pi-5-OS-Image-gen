@@ -22,7 +22,7 @@ This is a compact architecture-decision record. Changes that reverse these decis
 
 **Decision:** greetd initially starts Gamescope with ES-DE as the child application.
 
-**Why:** Gamescope provides an appliance-style game session and ES-DE supplies controller-native browsing, metadata and launcher integration. Keeping ES-DE as the launcher allows media, system actions and experimental applications to appear alongside games without making Steam the shell.
+**Why:** Gamescope provides an appliance-style game session and ES-DE supplies controller-native browsing, metadata and launcher integration. Keeping ES-DE as the launcher allows media, system actions and experimental applications to appear alongside games without making Steam the shell. A nonzero Gamescope failure launches ES-DE directly under Labwc, and that direct mode is manually selectable for hardware A/B testing.
 
 **Rejected:** a traditional desktop session as the default. It increases memory use and makes controller-only navigation secondary.
 
@@ -113,6 +113,22 @@ This is a compact architecture-decision record. Changes that reverse these decis
 **Decision:** enable security unattended upgrades, disable automatic reboot, and disable the SSH server by default.
 
 **Why:** an appliance needs security maintenance without unexpected restarts during play or media use. Local controller/desktop operation is primary, and remote login was not a project requirement.
+
+## Hybrid build persistence
+
+**Decision:** persist a verified bare mirror of the official Armbian source plus dependency/download/compiler caches, but create a new detached checkout, userpatch tree, application build tree, rootfs and image for every attempt.
+
+**Why:** the original fresh-workspace rule was intended to prevent contaminated failed outputs from affecting the next image, not to require re-downloading immutable source history. A bare origin-checked mirror provides most of the conventional persistent-workspace speed benefit while keeping output state isolated and reviewable.
+
+**Rejected:** resuming a failed mutable Armbian/rootfs workspace. It can retain partial package installation, old userpatches or compiled objects outside verified compiler-cache semantics.
+
+## Rolling-maintained appliance, fixed distribution boundary
+
+**Decision:** support attended same-release APT maintenance on the Pi through `opi-update`, while blocking distribution-suite changes and keeping project-built binaries pinned until a signed project-bundle channel exists.
+
+**Why:** Armbian kernel/firmware/BSP packages, Ubuntu packages, Brave, Firefox and distro emulators need timely updates without reflashing. The custom Stremio/FFmpeg/mpv and source-built emulators have tighter ABI and hardware-validation requirements, so replacing them merely because an upstream tag exists would risk the appliance's core guarantees.
+
+**Rejected:** presenting Ubuntu Resolute as a rolling distribution or invoking `dist-upgrade`/`do-release-upgrade` automatically. Armbian treats distribution upgrades as unsupported/experimental, and such a jump can invalidate the board graphics/media contract.
 
 ## Steam remains experimental
 

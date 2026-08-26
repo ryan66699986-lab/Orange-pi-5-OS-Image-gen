@@ -1,6 +1,19 @@
 # Changelog
 
-## V3.25 — current development generation
+## V3.26 — current development generation
+
+- Clarified the product as a personal Orange Pi 5 Pro appliance that should also transfer cleanly to another identical board; retained the complete specified emulator set, Brave plus Firefox, visible experimental Steam, native Stremio hardware decoding and the SD → NVMe → eMMC storage plan.
+- Replaced the overly broad all-disposable build interpretation with a hybrid model: an official origin-checked, connectivity-verified bare Armbian mirror persists, while each attempt creates a new detached checkout and fresh userpatch, rootfs, native artifact and image state.
+- Kept Gamescope as the preferred ES-DE session and Labwc as the only desktop. A nonzero Gamescope failure now launches ES-DE directly under Labwc; Direct Gaming Mode is also selectable for recovery and hardware comparison. No tiling compositor or X11-first desktop was introduced.
+- Added explicit `core`, `required` and `experimental` component policy tiers. All specified emulators remain installed/build-gated; Steam/GE-Proton remain visible and non-blocking.
+- Added `opi-appliance-health` and an attended `opi-update check|apply|health` workflow for same-release Armbian, Ubuntu, browser and other APT-managed package maintenance on the Pi.
+- The updater verifies ARM64/Orange Pi 5 Pro/Ubuntu Resolute, serializes runs, checks core health, simulates APT, refuses active gaming/media/browser sessions, requires 1.5 GiB free and literal confirmation, records package versions, audits dpkg and rechecks health.
+- Blocked automatic distribution release upgrades and prohibited `dist-upgrade`, `full-upgrade` and `do-release-upgrade` in the appliance updater. Source-built Stremio/media/emulator components remain pinned until a signed project-bundle channel can preserve their ABI and hardware gates.
+- Added target-root, offline-image and static assertions for the mirror, direct session, update boundary, component tiers and new runtime dependencies.
+
+V3.26 is a development generation. The hybrid mirror, direct Labwc gaming and on-device maintenance path require a complete build and physical-board validation.
+
+## V3.25
 
 - Added a persistent, input-keyed Ubuntu Resolute ARM64 build-dependency image. Its key includes the pulled ARM64 base-image content ID, the complete build-package group file and an explicit cache schema. Every cached image is rechecked for ARM64 architecture, `ccache`, and every declared package before use.
 - Kept all application sources, build directories, output roots and final artifacts outside the dependency image. Every native artifact is still built sequentially in a new disposable container with an empty artifact directory.

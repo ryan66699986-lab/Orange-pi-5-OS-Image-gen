@@ -31,7 +31,7 @@ Native artifacts are built in isolated Ubuntu Resolute ARM64 containers through 
 
 ### Cache plane
 
-The cache plane is outside both the repository and versioned workspace. It has four narrowly defined stores:
+The cache plane is outside both the repository and versioned workspace. It has five narrowly defined stores:
 
 | Store | Reusable content | Excluded content |
 |---|---|---|
@@ -39,8 +39,9 @@ The cache plane is outside both the repository and versioned workspace. It has f
 | Native ccache | Content-verified compiler results, namespaced per application | Linked/install trees and final artifacts |
 | Language caches | Cargo registry and Go module/build cache | Stremio/gamepad source and target directories |
 | Download cache | URL-keyed bytes plus SHA-256 integrity record | Extracted application trees and merged root |
+| Armbian source mirror | Verified official bare Git mirror updated with bounded network operations | Userpatches, rootfs state, compiled artifacts and images |
 
-Cache hits optimize acquisition or compilation; they do not establish correctness. The normal source, architecture, runtime-manifest, merged-closure, target-root and offline-image gates still establish correctness. The Armbian workspace is freshly cloned even while Armbian's supported compiler cache remains external.
+Cache hits optimize acquisition or compilation; they do not establish correctness. The normal source, architecture, runtime-manifest, merged-closure, target-root and offline-image gates still establish correctness. Each Armbian workspace is a fresh detached checkout copied from the verified mirror; no failed checkout, userpatch, rootfs or artifact is resumed.
 
 ## Runtime session topology
 
@@ -48,12 +49,14 @@ Cache hits optimize acquisition or compilation; they do not establish correctnes
 greetd initial session
   → opi-session-dispatch
     → gaming: Gamescope → ES-DE + gamepad-osk + udiskie
+       ↳ nonzero Gamescope failure: Labwc → ES-DE directly
+    → direct: Labwc → ES-DE directly + desktop services
     → desktop: Labwc → Waybar/Fuzzel/Mako + applets + gamepad-osk + udiskie
 ```
 
 The resulting image defaults to greetd → Gamescope → ES-DE. Labwc is the lightweight Wayland desktop fallback. RetroArch/libretro, XFCE and LightDM are intentionally absent.
 
-If Gamescope exits, `opi-gaming-session` records its status and executes Desktop Mode. This improves recoverability but does not turn a Gamescope failure into a release pass.
+If Gamescope fails with a nonzero status, `opi-gaming-session` records the failure and launches ES-DE directly under Labwc. A normal ES-DE/Gamescope exit enters Desktop Mode. Direct Gaming Mode is also selectable for A/B testing. Recovery preserves controller access but does not turn a Gamescope failure into a release pass.
 
 ES-DE's custom systems file maps console collections to normalized wrappers under `/usr/local/libexec/opi-emulators`. The `ports` collection is also the controller-accessible application/system menu.
 
@@ -111,7 +114,8 @@ This policy intentionally favors latency/performance over power consumption and 
 - Repository source pins are resolved to commits and hashes.
 - Official browser repositories are key/fingerprint/source-bound and preflighted on ARM64.
 - Git network calls have bounded retries/timeouts and cannot prompt for credentials.
-- Security-only OS updates are automatic; reboot and broad release upgrades are not.
+- Security-only OS updates are automatic; attended `opi-update apply` handles broader same-release APT maintenance after simulation and pre/post health checks.
+- Distribution-release changes are blocked on-device. Source-built media/emulator components stay pinned until a signed project-bundle channel can revalidate their ABI and hardware gates.
 - Steam and GE-Proton are an optional experimental boundary; their failure must not alter hard production gates.
 
 See `DESIGN-DECISIONS.md` for alternatives and `COMPONENTS.md` for provenance.

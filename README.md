@@ -13,20 +13,20 @@ This is not a generic Armbian remix. It is an appliance-style image with explici
 | Item | Current state |
 |---|---|
 | Profile | `orangepi5pro-gaming` |
-| Project generation | V3.25 |
+| Project generation | V3.26 |
 | Board | Orange Pi 5 Pro, RK3588S, 4 GB |
 | Base | Armbian build framework |
 | Distribution | Ubuntu 26.04 Resolute |
 | Kernel | Armbian `edge`, Linux 7.1+ required |
-| Session | greetd → Gamescope → ES-DE |
-| Desktop fallback | Labwc / Wayland |
+| Session | greetd → Gamescope → ES-DE; direct Labwc/ES-DE recovery mode |
+| Desktop fallback | Labwc / Wayland only; no X11-first desktop environment |
 | Media | Native Stremio + enforced RK3588 V4L2 Request FFmpeg/libmpv path; H.264/HEVC/Main10/VP9/AV1 4K probes |
 | Streaming | Moonlight, forced hardware decode through the same audited media stack; display mode and HDR auto-detected at launch |
 | Controllers | Any native Linux-input gamepad; EasySMX X20 is the wired/2.4 GHz/Bluetooth reference device |
 | Audio | PipeWire HDMI/DisplayPort plus Bluetooth; HDMI selected once on first successful session, later user choices preserved |
 | Storage policy | SD boot/current root only during testing; final plan is SD boot + Btrfs NVMe root, later eMMC boot + Btrfs NVMe root |
 | Browser | Brave default, Firefox alternative; gamepad mouse/OSK available |
-| Status | active development; V3.25 adds verified external caches and per-stage timing without reusing workspaces or artifacts |
+| Status | active development; V3.26 adds a hybrid source-mirror/fresh-output build and same-release on-device maintenance |
 
 ## Repository layout
 
@@ -59,9 +59,9 @@ cd Orange-pi-5-OS-Image-gen
 ./build.sh
 ```
 
-The build retains the project's strict fresh-workspace rule: every attempt deletes the versioned Armbian workspace and clones a new Armbian tree. Failed workspaces are diagnostic-only and are never resumed.
+The build uses a hybrid persistence rule. A verified bare Armbian source mirror and external dependency/download/compiler caches persist, while every attempt creates a new detached Armbian checkout, application build tree, merged root, rootfs and image. Failed outputs remain diagnostic-only and are never resumed.
 
-V3.25 may reuse only external, verified dependency/download/compiler caches. It never reuses a source checkout, application build tree, merged root, Armbian workspace or generated artifact. The first run populates caches; later runs report cache hits and stage timings in the log.
+The installed appliance can apply signed same-release Armbian, Ubuntu, Brave, Firefox and other APT-managed package updates through `opi-update`. Source-built Stremio, Moonlight and native emulator artifacts remain pinned until a separately validated project-bundle channel exists; the updater never silently replaces that hardware-sensitive stack.
 
 The builder never writes to the Orange Pi's installed NVMe. During image development the NVMe is limited to read-only inventory and SMART queries. See the storage handbook before any post-validation migration.
 
@@ -83,6 +83,7 @@ The builder never writes to the Orange Pi's installed NVMe. During image develop
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Failure triage for builds and runtime faults |
 | [`docs/REFERENCES.md`](docs/REFERENCES.md) | Curated primary upstream documentation |
 | [`docs/STATUS.md`](docs/STATUS.md) | Current generation and outstanding proof |
+| [`docs/V3.26-AUDIT.md`](docs/V3.26-AUDIT.md) | Scope refinement, hybrid workspace and appliance-maintenance record |
 | [`docs/V3.25-AUDIT.md`](docs/V3.25-AUDIT.md) | Safe build-speed design, trust boundaries and regression evidence |
 | [`docs/V3.24-AUDIT.md`](docs/V3.24-AUDIT.md) | Systemic late-failure audit and V3.24 closure record |
 | [`docs/V3.23-AUDIT.md`](docs/V3.23-AUDIT.md) | V3.22 full-log diagnosis and explicit GLEW repair |

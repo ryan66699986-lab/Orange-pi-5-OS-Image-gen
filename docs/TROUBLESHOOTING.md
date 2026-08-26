@@ -2,7 +2,7 @@
 
 ## Golden rule for build failures
 
-Treat a failed Armbian workspace as diagnostic-only. Preserve the generated diagnostic bundle/log, fix the canonical repository, and start the next attempt from a completely fresh versioned workspace. Never resume, repair or reuse a failed Armbian tree or its artifacts.
+Treat a failed Armbian output workspace as diagnostic-only. Preserve the generated diagnostic bundle/log, fix the canonical repository, and start the next attempt from a fresh detached checkout. The verified bare source mirror may persist; never resume, repair or reuse failed userpatches, rootfs state, build directories or artifacts.
 
 ## Find the first real failure
 
@@ -55,14 +55,15 @@ The cache root defaults to `~/.cache/opi5pro-builder`. It is not a resumable wor
 - If native ccache has no hits, compare compiler/source/flag changes and the per-application namespace. A miss is valid and must compile normally.
 - Never repair a cache problem by keeping the failed workspace or copying its `artifacts/` tree.
 - Do not run `docker system prune --volumes` while preserving Armbian compiler caches; Armbian's Docker workflow uses named cache volumes.
+- If the Armbian mirror origin or connectivity check fails, let the builder discard/recreate only `~/.cache/opi5pro-builder/git/armbian-build.git`. Never replace that mirror with a previous failed checkout.
 
-The first V3.25 build is expected to populate caches. Use the timing table from the first and next identical-source run before making performance claims.
+The first V3.25/V3.26 cache-assisted build is expected to populate caches. Use the timing table from the first and next identical-source run before making performance claims.
 
 ## Password prompt problems
 
 The password is for the future `ryan` account in the Orange Pi image, not GitHub. Input is intentionally invisible. Both reads must come from `/dev/tty`; the repository statically checks this because an earlier builder consumed stage-list input instead of the keyboard.
 
-## Gaming Mode fails or returns to Desktop Mode
+## Gaming Mode fails or enters Direct Gaming Mode
 
 Inspect:
 
@@ -74,7 +75,11 @@ vulkaninfo --summary
 ls -l /dev/dri
 ```
 
-Automatic Labwc fallback is a recovery feature, not proof that Gaming Mode is acceptable. A final image requires stable Gamescope/ES-DE.
+On a nonzero Gamescope failure, ES-DE starts directly under Labwc and records `es-de-direct.log`. A normal Gaming Mode exit enters Desktop Mode. Direct fallback is a recovery/A-B-test feature, not proof that Gamescope passed; final approval still requires stable Gamescope/ES-DE.
+
+## On-device update failure
+
+Review the newest `/var/log/opi-update/*` log and its before/after package inventories. Run `sudo opi-update health` and `dpkg --audit`. Do not change the Ubuntu suite, unhold Armbian firmware blindly, or replace `/opt/stremio`/`/opt/opi/media` with generic packages. If an APT update breaks a core check, retain the evidence and return to the known-good SD while the package interaction is reviewed.
 
 ## Controller or OSK failure
 

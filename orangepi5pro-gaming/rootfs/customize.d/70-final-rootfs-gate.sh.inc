@@ -3,6 +3,7 @@ log "Build-time target rootfs sanity gate"
 apt-get check
 visudo -cf /etc/sudoers
 desktop-file-validate /usr/share/applications/com.stremio.Stremio.desktop
+desktop-file-validate /usr/share/applications/opi-system-update.desktop
 glib-compile-schemas /usr/share/glib-2.0/schemas
 python3 - <<'PY'
 import json, tomllib, xml.etree.ElementTree as ET
@@ -13,6 +14,7 @@ ET.parse('/home/ryan/.emulationstation/custom_systems/es_systems.xml')
 PY
 mandatory_cmds=(es-de gamescope labwc gamepad-osk opencode moonlight-qt duckstation armsx2 ppsspp rmg flycast melonds azahar snes9x-gtk dolphin-emu sameboy mgba-qt nestopia brave-browser firefox node wpctl nmcli cec-ctl nvme armbian-install opi-brave opi-firefox opi-moonlight-display-auto opi-stremio-hwcheck opi-stremio-session-check opi-moonlight-hwcheck opi-moonlight-session-check opi-controller-check opi-audio-initial-default opi-audio-check opi-gpu-check opi-cec-check opi-nvme-check opi-validation-report)
 for cmd in "${mandatory_cmds[@]}"; do command -v "$cmd" >/dev/null 2>&1 || { echo "Mandatory command missing from target rootfs: $cmd" >&2; exit 1; }; done
+for cmd in opi-direct-gaming-session direct-gaming-mode opi-appliance-health opi-update; do command -v "$cmd" >/dev/null 2>&1 || { echo "V3.26 appliance command missing from target rootfs: $cmd" >&2; exit 1; }; done
 for pkg in libsdl2-ttf-2.0-0 libqt6quickcontrols2-6 libsdl3-0 libsdl3-ttf0 libglew2.2 mesa-vulkan-drivers armbian-firmware f2fs-tools xfsprogs; do dpkg-query -W -f='${Status}\n' "$pkg" 2>/dev/null | grep -qx 'install ok installed' || { echo "Mandatory application runtime package missing: $pkg" >&2; exit 1; }; done
 while IFS= read -r pkg; do
     [[ -n "$pkg" ]] || continue
@@ -24,6 +26,8 @@ done < /opt/opi-build-meta/required-packages.txt
 if ! test -x /usr/sbin/greetd && ! command -v greetd >/dev/null 2>&1; then echo "greetd binary missing from target rootfs" >&2; exit 1; fi
 mandatory_files=(/etc/greetd/config.toml /etc/opi/session-mode /etc/gamepad-osk/config /etc/modules-load.d/opi-gaming.conf /usr/lib/udev/rules.d/80-gamepad-osk.rules /usr/local/bin/opi-gaming-session /usr/local/bin/opi-desktop-session /usr/local/bin/opi-session-dispatch /usr/local/bin/opi-stremio-hwcheck /usr/local/bin/opi-stremio-session-check /usr/local/bin/opi-moonlight-hwcheck /usr/local/bin/opi-moonlight-session-check /usr/local/bin/opi-moonlight-display-auto /usr/local/bin/opi-controller-check /usr/local/bin/opi-audio-initial-default /usr/local/bin/opi-audio-check /usr/local/bin/opi-gpu-check /usr/local/bin/opi-cec-check /usr/local/bin/opi-nvme-check /usr/local/bin/opi-validation-report /etc/systemd/user/opi-audio-initial-default.service /etc/systemd/user/default.target.wants/opi-audio-initial-default.service /usr/share/vulkan/icd.d/panfrost_icd.json /opt/opi/apps/duckstation/AppRun /opt/opi/apps/armsx2/AppRun /home/ryan/.emulationstation/custom_systems/es_systems.xml "/home/ryan/.config/Moonlight Game Streaming Project/Moonlight.conf" /home/ryan/ROMs/ports/Brave-Browser.sh /home/ryan/ROMs/ports/Firefox-Browser.sh /home/ryan/ROMs/ports/Steam-Experimental.sh /home/ryan/ROMs/ports/Restart-Gaming-Mode.sh /opt/opi/apps/moonlight/moonlight-qt /opt/stremio/stremio /opt/stremio/server.js /opt/stremio/libopi-stremio-hwdec.so /opt/opi/media/bin/mpv /opt/opi/media/bin/ffmpeg /opt/opi-build-meta/h264-hwprobe.mp4 /opt/opi-build-meta/hevc-hwprobe.mp4 /opt/opi-build-meta/hevc-main10-hwprobe.mp4 /opt/opi-build-meta/h264-4k-hwprobe.mp4 /opt/opi-build-meta/hevc-main10-4k-hdr10-hwprobe.mp4 /opt/opi-build-meta/vp9-4k-hwprobe.webm /opt/opi-build-meta/av1-4k-hwprobe.mkv)
 for f in "${mandatory_files[@]}"; do [[ -e "$f" ]] || { echo "Mandatory target file missing: $f" >&2; exit 1; }; done
+maintenance_files=(/etc/opi/component-policy.tsv /etc/update-manager/release-upgrades /usr/local/bin/opi-direct-gaming-session /usr/local/bin/opi-appliance-health /usr/local/sbin/opi-update /usr/share/wayland-sessions/opi-direct-gaming.desktop /usr/share/applications/opi-system-update.desktop /home/ryan/ROMs/ports/Direct-Gaming-Mode.sh /home/ryan/ROMs/ports/Check-System-Updates.sh)
+for f in "${maintenance_files[@]}"; do [[ -e "$f" ]] || { echo "V3.26 appliance policy file missing: $f" >&2; exit 1; }; done
 find -L /lib/firmware/brcm -type f -name 'brcmfmac*-sdio.bin*' -print -quit | grep -q . || { echo "Armbian Broadcom Wi-Fi firmware payload missing" >&2; exit 1; }
 find -L /lib/firmware/brcm -type f -name '*.hcd' -print -quit | grep -q . || { echo "Armbian Broadcom Bluetooth firmware payload missing" >&2; exit 1; }
 [[ -e /opt/opi/media/lib/libmpv.so ]] || { echo "Dedicated libmpv linker/runtime path is missing" >&2; exit 1; }
@@ -32,6 +36,14 @@ grep -aFq 'v4l2request-copy' /opt/stremio/stremio || { echo "Stremio binary lack
 grep -qx 'videodec=1' "/home/ryan/.config/Moonlight Game Streaming Project/Moonlight.conf" || { echo "Moonlight is not forced to hardware decode" >&2; exit 1; }
 for key in width height fps; do grep -Eq "^${key}=[1-9][0-9]*$" "/home/ryan/.config/Moonlight Game Streaming Project/Moonlight.conf" || { echo "Moonlight ${key} safe default is invalid" >&2; exit 1; }; done
 [[ "$(cat /etc/opi/session-mode)" == gaming ]] || { echo "Default session mode is not gaming" >&2; exit 1; }
+grep -Fq 'exec /usr/local/bin/opi-direct-gaming-session' /usr/local/bin/opi-gaming-session || { echo "Gamescope failure does not enter direct Labwc gaming" >&2; exit 1; }
+grep -Fq 'OPI_DIRECT_GAMING=1' /usr/local/bin/opi-direct-gaming-session || { echo "Direct Labwc gaming marker missing" >&2; exit 1; }
+grep -Fq 'gaming|direct|desktop' /usr/local/sbin/opi-set-session || { echo "Direct gaming session is not selectable" >&2; exit 1; }
+for tier in core required experimental; do grep -q "^${tier}[[:space:]]" /etc/opi/component-policy.tsv || { echo "Component policy lacks ${tier} tier" >&2; exit 1; }; done
+grep -qx 'Prompt=never' /etc/update-manager/release-upgrades || { echo "Unsafe distribution-release prompt policy" >&2; exit 1; }
+grep -Fq 'apt-get -s upgrade' /usr/local/sbin/opi-update || { echo "Updater lacks pre-apply APT simulation" >&2; exit 1; }
+grep -Fq 'apt-get upgrade' /usr/local/sbin/opi-update || { echo "Updater lacks same-release package upgrade" >&2; exit 1; }
+! grep -Eq 'dist-upgrade|full-upgrade|do-release-upgrade' /usr/local/sbin/opi-update || { echo "Updater contains a forbidden release/removal-capable upgrade path" >&2; exit 1; }
 grep -Eq '^[[:space:]]*toggle_combo[[:space:]]*=[[:space:]]*guide\+start([[:space:]]*)$' /etc/gamepad-osk/config || { echo "gamepad-osk Guide+Start toggle is not configured" >&2; exit 1; }
 [[ "$(grep -Ec '^[[:space:]]*\[gamepad\][[:space:]]*$' /etc/gamepad-osk/config)" -eq 1 ]] || { echo "gamepad-osk config does not contain exactly one [gamepad] section" >&2; exit 1; }
 [[ "$(grep -Ec '^[[:space:]]*\[mouse\][[:space:]]*$' /etc/gamepad-osk/config)" -eq 1 ]] || { echo "gamepad-osk config does not contain exactly one [mouse] section" >&2; exit 1; }

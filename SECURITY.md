@@ -31,6 +31,7 @@ The build reads the image account password from `/dev/tty`, hashes it immediatel
 - Persistent downloads require a matching SHA-256 sidecar, and reviewed digest pins remain authoritative over cache metadata.
 - The dependency image is keyed by the pulled ARM64 base content ID, build-package manifest and schema, then revalidates architecture and package presence on every use.
 - Native compiler caching uses content-based compiler identity and per-application namespaces. Cache entries never replace source-lock, linkage, target-root or raw-image checks.
+- The persistent Armbian mirror is restricted to the official origin, refreshed through bounded Git transport, connectivity-checked and copied into a new detached checkout for every build.
 
 A pin is not a guarantee that upstream content is safe. Review upstream security advisories and changes before updating or rebuilding for distribution.
 
@@ -41,6 +42,8 @@ A pin is not a guarantee that upstream content is safe. Review upstream security
 - SSH server/socket are disabled by default; the client remains installed.
 - The local `ryan` account has the password chosen at build time and limited passwordless commands needed for session/power appliance controls.
 - Browser and network-facing application security remains dependent on timely upstream/Ubuntu updates.
+- `opi-update` permits attended same-release APT upgrades only, refuses non-ARM64/non-Orange-Pi-5-Pro/non-Resolute hosts, serializes runs, simulates first, records package inventories and runs post-update health checks.
+- Distribution upgrades are disabled. Image-managed source builds are not silently replaced by APT; they remain pinned pending a signed project-bundle channel.
 
 ## Storage safety
 

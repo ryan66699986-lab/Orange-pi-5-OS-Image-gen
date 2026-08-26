@@ -16,7 +16,7 @@ This document is the authoritative product contract for the `orangepi5pro-gaming
 - Accept any controller presented through native Linux input; no vendor allowlist may be required for normal operation.
 - Treat the EasySMX X20 over USB, 2.4 GHz receiver and Bluetooth as the reference acceptance device, not as the only supported controller.
 - Guide/Home + Start toggles the on-screen keyboard. A stick-controlled mouse must make non-game applications usable without a physical mouse.
-- Provide a lightweight Labwc desktop from ES-DE and as an automatic Gamescope failure fallback.
+- Provide a lightweight Labwc desktop from ES-DE. A nonzero Gamescope failure must preserve the controller shell by launching ES-DE directly under Labwc; Direct Gaming Mode must also be manually selectable for comparison/recovery.
 - Expose network setup, audio selection, Brave, Firefox, Stremio, Moonlight, desktop mode, restart, reboot and shutdown through ES-DE's Ports collection.
 - Autodetect the connected display and use its current/preferred highest usable mode. Enable HDR only when the active output advertises HDR static metadata.
 - Provide both HDMI/DisplayPort and Bluetooth audio. HDMI is the initial default; the user may change output at runtime.
@@ -69,10 +69,19 @@ The following must pass on the real Orange Pi, not merely inside QEMU or the bui
 ## Security and maintenance policy
 
 - Security-only unattended Ubuntu updates are enabled; automatic reboot is disabled.
+- Provide an attended on-device updater for signed same-release Armbian, Ubuntu and third-party APT repositories, with simulation, free-space/process guards, package-version records and pre/post core health checks.
+- Treat this as a rolling-maintained appliance within Ubuntu Resolute, not an unsupported rolling distribution. Distribution-suite upgrades are blocked until separately built and validated as a new project generation.
+- Keep source-built Stremio, its dedicated FFmpeg/mpv, Moonlight and source-built emulators pinned until a signed project-bundle update channel can preserve their ABI, runtime-closure and hardware gates.
 - SSH server and socket are disabled by default. The OpenSSH client remains available.
 - Suspend and hibernate are disabled for appliance predictability.
 - No credentials, plaintext passwords, password hashes, ROMs, copyrighted BIOS files or generated images belong in Git.
 - Source tags are resolved to commits, build outputs are hashed, and a source lock/manifest accompanies the image.
+
+## Component criticality
+
+- `core`: boot/graphics/session recovery, controller input/OSK, native Stremio hardware decoding, Moonlight, networking and audio. A core failure rejects the appliance immediately.
+- `required`: Gamescope, the complete specified emulator catalogue, Firefox, CEC and removable-storage support. These may be diagnosed after an MVP first boot, but every item must pass before the image is final.
+- `experimental`: Steam ARM64 and GE-Proton. They remain visible and testable but cannot block the stable appliance.
 
 ## Explicit non-goals
 

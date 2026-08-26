@@ -1,7 +1,31 @@
-say "Fresh Armbian workspace"
+say "Verified persistent Armbian source mirror"
+if [[ -L "$ARMBIAN_MIRROR" || ( -e "$ARMBIAN_MIRROR" && ! -d "$ARMBIAN_MIRROR/objects" ) ]]; then
+    warn "Discarding invalid Armbian source mirror: $ARMBIAN_MIRROR"
+    remove_workdir "$ARMBIAN_MIRROR" || die "Could not remove invalid Armbian source mirror"
+fi
+if [[ -d "$ARMBIAN_MIRROR/objects" && "$(git -C "$ARMBIAN_MIRROR" rev-parse --is-bare-repository 2>/dev/null || true)" != true ]]; then
+    warn "Discarding non-bare Armbian source cache: $ARMBIAN_MIRROR"
+    remove_workdir "$ARMBIAN_MIRROR" || die "Could not remove non-bare Armbian source cache"
+fi
+if [[ ! -d "$ARMBIAN_MIRROR/objects" ]]; then
+    mirror_tmp="${ARMBIAN_MIRROR}.new.$$"
+    remove_workdir "$mirror_tmp" || die "Could not clear temporary Armbian mirror path"
+    git_net clone --mirror "$ARMBIAN_REPOSITORY" "$mirror_tmp"
+    mv -- "$mirror_tmp" "$ARMBIAN_MIRROR"
+    good "Created persistent Armbian source mirror"
+fi
+[[ "$(git -C "$ARMBIAN_MIRROR" config --get remote.origin.url)" == "$ARMBIAN_REPOSITORY" ]] || die "Armbian mirror origin is not the official repository"
+GIT_NETWORK_TIMEOUT=15m git_net -C "$ARMBIAN_MIRROR" remote update --prune
+git -C "$ARMBIAN_MIRROR" fsck --connectivity-only --no-dangling >/dev/null || die "Armbian source mirror failed connectivity verification"
+ARMBIAN_COMMIT="$(git -C "$ARMBIAN_MIRROR" rev-parse refs/heads/main)"
+[[ "$ARMBIAN_COMMIT" =~ ^[0-9a-f]{40}$ ]] || die "Could not resolve Armbian main from the verified mirror"
+say "Fresh Armbian workspace from verified mirror"
 [[ ! -e "$ARMBIAN" ]] || die "Armbian destination unexpectedly exists before clone"
-git_net clone --depth=1 https://github.com/armbian/build.git "$ARMBIAN"
-ARMBIAN_COMMIT="$(git -C "$ARMBIAN" rev-parse HEAD)"
+GIT_NETWORK_TIMEOUT=15m git_net clone --no-local --no-hardlinks "$ARMBIAN_MIRROR" "$ARMBIAN"
+git -C "$ARMBIAN" remote set-url origin "$ARMBIAN_REPOSITORY"
+git -C "$ARMBIAN" checkout --detach "$ARMBIAN_COMMIT"
+[[ "$(git -C "$ARMBIAN" rev-parse HEAD)" == "$ARMBIAN_COMMIT" ]] || die "Fresh Armbian checkout does not match the mirror commit"
+[[ -z "$(git -C "$ARMBIAN" status --porcelain)" ]] || die "Fresh Armbian checkout is unexpectedly dirty"
 USERPATCHES_DIR="$ARMBIAN/userpatches"
 install -d -m0755 "$USERPATCHES_DIR"
 [[ -d "$USERPATCHES_DIR" && -w "$USERPATCHES_DIR" ]] || die "Armbian userpatches directory is unavailable or not writable: $USERPATCHES_DIR"

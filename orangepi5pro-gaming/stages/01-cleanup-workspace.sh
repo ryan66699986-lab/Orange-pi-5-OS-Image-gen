@@ -25,8 +25,10 @@ PY
 )"
 DOWNLOAD_CACHE="${CACHE_ROOT}/downloads"
 COMPILER_CACHE="${CACHE_ROOT}/compiler"
+SOURCE_CACHE="${CACHE_ROOT}/git"
+ARMBIAN_MIRROR="${SOURCE_CACHE}/armbian-build.git"
 case "$CACHE_ROOT" in /|"$HOME"|"$REPO_ROOT"|"$REPO_ROOT"/*|"$WORK"|"$WORK"/*|"$OUT"|"$OUT"/*) die "Unsafe cache root: $CACHE_ROOT";; esac
-mkdir -p "$DOWNLOAD_CACHE" "$COMPILER_CACHE/ccache" "$COMPILER_CACHE/tooling"
+mkdir -p "$DOWNLOAD_CACHE" "$COMPILER_CACHE/ccache" "$COMPILER_CACHE/tooling" "$SOURCE_CACHE"
 [[ -d "$CACHE_ROOT" && -w "$CACHE_ROOT" ]] || die "Persistent cache root is not writable: $CACHE_ROOT"
 remove_workdir "$WORK" || die "Could not fully delete prior V${PROFILE_VERSION} workspace: $WORK"
 [[ ! -e "$WORK" ]] || die "Fresh-start invariant failed: $WORK still exists"

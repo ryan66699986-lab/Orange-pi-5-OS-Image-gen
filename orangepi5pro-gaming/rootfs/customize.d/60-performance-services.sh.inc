@@ -140,6 +140,10 @@ cat > /home/ryan/ROMs/ports/Desktop-Mode.sh <<'EOF'
 #!/usr/bin/env bash
 exec desktop-mode
 EOF
+cat > /home/ryan/ROMs/ports/Direct-Gaming-Mode.sh <<'EOF'
+#!/usr/bin/env bash
+exec direct-gaming-mode
+EOF
 cat > /home/ryan/ROMs/ports/Reboot.sh <<'EOF'
 #!/usr/bin/env bash
 sudo systemctl reboot
