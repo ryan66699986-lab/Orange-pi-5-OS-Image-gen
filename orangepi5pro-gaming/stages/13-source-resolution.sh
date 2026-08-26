@@ -1,5 +1,5 @@
 say "Resolving and validating component sources"
-require_github_tag anomalyco/opencode "$OPENCODE_TAG"; OPENCODE_URL="https://github.com/anomalyco/opencode/releases/download/${OPENCODE_TAG}/opencode-linux-arm64.tar.gz"; require_download_url "$OPENCODE_URL" "OpenCode ${OPENCODE_TAG} ARM64 tarball"
+require_github_tag anomalyco/opencode "$OPENCODE_TAG"; [[ "$OPENCODE_ARM64_SHA256" =~ ^[0-9a-f]{64}$ ]] || die "OpenCode ARM64 SHA-256 is not pinned"; OPENCODE_URL="https://github.com/anomalyco/opencode/releases/download/${OPENCODE_TAG}/opencode-linux-arm64.tar.gz"; require_download_url "$OPENCODE_URL" "OpenCode ${OPENCODE_TAG} ARM64 tarball"
 STREMIO_COMMIT="$(remote_tag_commit "https://github.com/Stremio/stremio-linux-shell.git" "$STREMIO_TAG")"; [[ "$STREMIO_COMMIT" =~ ^[0-9a-f]{40}$ ]] || die "Unable to resolve Stremio ${STREMIO_TAG} commit"
 MPV_COMMIT="$(remote_tag_commit "https://github.com/mpv-player/mpv.git" "$MPV_TAG")"; [[ "$MPV_COMMIT" =~ ^[0-9a-f]{40}$ ]] || die "Unable to resolve mpv ${MPV_TAG} commit"
 MOONLIGHT_COMMIT="$(remote_tag_commit "https://github.com/moonlight-stream/moonlight-qt.git" "$MOONLIGHT_TAG")"; [[ "$MOONLIGHT_COMMIT" =~ ^[0-9a-f]{40}$ ]] || die "Unable to resolve Moonlight ${MOONLIGHT_TAG} commit"
@@ -19,12 +19,12 @@ V4L2_FFMPEG_REPO="https://code.ffmpeg.org/Kwiboo/FFmpeg.git"; V4L2_FFMPEG_COMMIT
 [[ "$DUCK_RELEASE_ID" =~ ^[0-9]+$ ]] || die "DuckStation release ID is not pinned"
 [[ "$DUCK_ARM64_SHA256" =~ ^[0-9a-f]{64}$ ]] || die "DuckStation ARM64 SHA-256 is not pinned"
 DUCK_TAG="release-${DUCK_RELEASE_ID}"; DUCK_URL="https://github.com/stenzek/duckstation/releases/download/latest/DuckStation-arm64.AppImage"; require_download_url "$DUCK_URL" "DuckStation ARM64 AppImage"
-ARMSX2_COMMIT="$(remote_tag_commit "https://github.com/ARMSX2/ARMSX2.git" "$ARMSX2_TAG")"; [[ "$ARMSX2_COMMIT" =~ ^[0-9a-f]{40}$ ]] || die "Unable to resolve ARMSX2 ${ARMSX2_TAG} commit"; ARMSX2_DATE="${ARMSX2_TAG#nightly-}"; [[ "$ARMSX2_DATE" =~ ^[0-9]{8}$ ]] || die "Unexpected ARMSX2 nightly tag format: ${ARMSX2_TAG}"; ARMSX2_SHORT="${ARMSX2_COMMIT:0:10}"; ARMSX2_ASSET="ARMSX2-nightly-${ARMSX2_DATE}-${ARMSX2_SHORT}-Linux-arm64-4K-pages.AppImage"; ARMSX2_URL="https://github.com/ARMSX2/ARMSX2/releases/download/${ARMSX2_TAG}/${ARMSX2_ASSET}"; require_download_url "$ARMSX2_URL" "ARMSX2 ${ARMSX2_TAG} Linux ARM64 4K AppImage"
+ARMSX2_COMMIT="$(remote_tag_commit "https://github.com/ARMSX2/ARMSX2.git" "$ARMSX2_TAG")"; [[ "$ARMSX2_COMMIT" =~ ^[0-9a-f]{40}$ ]] || die "Unable to resolve ARMSX2 ${ARMSX2_TAG} commit"; [[ "$ARMSX2_ARM64_SHA256" =~ ^[0-9a-f]{64}$ ]] || die "ARMSX2 ARM64 SHA-256 is not pinned"; ARMSX2_DATE="${ARMSX2_TAG#nightly-}"; [[ "$ARMSX2_DATE" =~ ^[0-9]{8}$ ]] || die "Unexpected ARMSX2 nightly tag format: ${ARMSX2_TAG}"; ARMSX2_SHORT="${ARMSX2_COMMIT:0:10}"; ARMSX2_ASSET="ARMSX2-nightly-${ARMSX2_DATE}-${ARMSX2_SHORT}-Linux-arm64-4K-pages.AppImage"; ARMSX2_URL="https://github.com/ARMSX2/ARMSX2/releases/download/${ARMSX2_TAG}/${ARMSX2_ASSET}"; require_download_url "$ARMSX2_URL" "ARMSX2 ${ARMSX2_TAG} Linux ARM64 4K AppImage"
 GE_TAG="$GE_PROTON_TAG"; GE_URL="https://github.com/GloriousEggroll/proton-ge-custom/releases/download/${GE_TAG}/${GE_TAG}-aarch64.tar.gz"; GE_STATUS="$(head_status "$GE_URL")"; if [[ "$GE_STATUS" != 200 && "$GE_STATUS" != 206 ]]; then warn "Optional GE-Proton seed unavailable (HTTP ${GE_STATUS:-000}); continuing without it"; GE_TAG=""; GE_URL=""; fi
 jq -n \
   --arg generated "$(date --iso-8601=seconds)" \
   --arg builder "v${PROFILE_VERSION}-repo" \
-  --arg opencode "$OPENCODE_TAG" \
+  --arg opencode "$OPENCODE_TAG" --arg opencode_sha256 "$OPENCODE_ARM64_SHA256" \
   --arg moonlight "$MOONLIGHT_TAG" --arg moonlight_commit "$MOONLIGHT_COMMIT" \
   --arg esde "$ESDE_TAG" --arg esde_commit "$ESDE_COMMIT" \
   --arg gamepad "$GAMEPAD_OSK_COMMIT" \
@@ -38,9 +38,9 @@ jq -n \
   --arg azahar "$AZAHAR_TAG" --arg azahar_commit "$AZAHAR_COMMIT" \
   --arg snes9x "$SNES9X_TAG" --arg snes9x_commit "$SNES9X_COMMIT" \
   --arg duck "$DUCK_TAG" --arg duck_sha256 "$DUCK_ARM64_SHA256" \
-  --arg armsx2 "$ARMSX2_TAG" --arg armsx2_commit "$ARMSX2_COMMIT" \
+  --arg armsx2 "$ARMSX2_TAG" --arg armsx2_commit "$ARMSX2_COMMIT" --arg armsx2_sha256 "$ARMSX2_ARM64_SHA256" \
   --arg ge "$GE_TAG" \
-  '{generated:$generated,builder:$builder,target:{board:"orangepi5pro",branch:"edge",release:"resolute",arch:"aarch64"},components:{opencode:$opencode,moonlight:$moonlight,moonlight_commit:$moonlight_commit,moonlight_hwdec_policy:"force-hardware-v4l2request",es_de:$esde,es_de_commit:$esde_commit,gamepad_osk_commit:$gamepad,stremio_linux_shell:$stremio,stremio_linux_shell_commit:$stremio_commit,stremio_hwdec_policy:$stremio_hwdec,ffmpeg_v4l2_request_branch:$ffmpeg_v4l2,ffmpeg_v4l2_request_repo:$ffmpeg_repo,ffmpeg_v4l2_request_commit:$ffmpeg_commit,mpv:$mpv,mpv_commit:$mpv_commit,ppsspp:$ppsspp,ppsspp_commit:$ppsspp_commit,rmg:$rmg,rmg_commit:$rmg_commit,flycast:$flycast,flycast_commit:$flycast_commit,melonds:$melonds,melonds_commit:$melonds_commit,azahar:$azahar,azahar_commit:$azahar_commit,snes9x:$snes9x,snes9x_commit:$snes9x_commit,duckstation:$duck,duckstation_sha256:$duck_sha256,armsx2:$armsx2,armsx2_commit:$armsx2_commit,ge_proton:$ge}}' > "$LOCK"
+  '{generated:$generated,builder:$builder,target:{board:"orangepi5pro",branch:"edge",release:"resolute",arch:"aarch64"},components:{opencode:$opencode,opencode_sha256:$opencode_sha256,moonlight:$moonlight,moonlight_commit:$moonlight_commit,moonlight_hwdec_policy:"force-hardware-v4l2request",es_de:$esde,es_de_commit:$esde_commit,gamepad_osk_commit:$gamepad,stremio_linux_shell:$stremio,stremio_linux_shell_commit:$stremio_commit,stremio_hwdec_policy:$stremio_hwdec,ffmpeg_v4l2_request_branch:$ffmpeg_v4l2,ffmpeg_v4l2_request_repo:$ffmpeg_repo,ffmpeg_v4l2_request_commit:$ffmpeg_commit,mpv:$mpv,mpv_commit:$mpv_commit,ppsspp:$ppsspp,ppsspp_commit:$ppsspp_commit,rmg:$rmg,rmg_commit:$rmg_commit,flycast:$flycast,flycast_commit:$flycast_commit,melonds:$melonds,melonds_commit:$melonds_commit,azahar:$azahar,azahar_commit:$azahar_commit,snes9x:$snes9x,snes9x_commit:$snes9x_commit,duckstation:$duck,duckstation_sha256:$duck_sha256,armsx2:$armsx2,armsx2_commit:$armsx2_commit,armsx2_sha256:$armsx2_sha256,ge_proton:$ge}}' > "$LOCK"
 cat "$LOCK"; good "All mandatory source refs and recipe layouts resolve"
 install -m0644 "$PROFILE_DIR/packages/base.txt" "$WORK/required-packages.base.txt"
 install -m0644 "$PROFILE_DIR/packages/build-groups.txt" "$WORK/build-package-groups.txt"

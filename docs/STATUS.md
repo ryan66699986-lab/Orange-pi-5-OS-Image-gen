@@ -1,8 +1,10 @@
 # Project status
 
-## Current generation: V3.26
+## Current generation: V3.27
 
-V3.26 is the active build under test.
+V3.27 is the active build under test. V3.26 is invalid and must not be built or resumed.
+
+The 527-line V3.26 run stopped before native compilation because Docker was not given interactive stdin for the embedded dependency installer. The same defect made the pre-Armbian runtime-closure program a no-op. V3.27 removes the conflicting all-dependencies cache, uses a content-addressed plain ARM64 base, performs dependency installation separately inside every recipe, and executes runtime closure from a mounted script. The host must verify a receipt containing architecture, dynamic-ELF counts, package count, package-list digest and PASS result before Armbian begins. Generic `ldd` scans now fail on command failure as well as `not found`. See `V3.27-AUDIT.md`.
 
 V3.26 records the product as a personal Orange Pi 5 Pro appliance that should remain transferable to another identical board. It retains every specified emulator, both browsers, visible experimental Steam, Labwc-only desktop and the confirmed SD → NVMe → eMMC storage progression. Gamescope remains preferred, but a nonzero failure now preserves ES-DE through direct Labwc gaming, which is also selectable for A/B testing.
 
@@ -57,4 +59,4 @@ A successful host build and offline image QA are necessary but not sufficient. H
 - a real Moonlight stream at the display mode detected at launch, using the hardware-accelerated FFmpeg decoder; a 4K display must therefore prove a 4K stream;
 - memory/thermal behavior on the 4 GB board.
 
-Until those pass, V3.26 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.
+Until those pass, V3.27 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.

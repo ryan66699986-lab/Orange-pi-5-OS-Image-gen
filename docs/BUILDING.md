@@ -21,7 +21,7 @@ Every attempt uses a fresh versioned output workspace under the builder user's h
 
 Generated images and diagnostic bundles are written outside the repository under `~/opi5pro-images`.
 
-The persistent cache root defaults to `~/.cache/opi5pro-builder` and is deliberately outside the repository and workspace. It may contain verified downloads, an input-keyed dependency image, compiler/language caches and the official bare Armbian Git mirror. It never contains a mutable build checkout, userpatch tree, native application output, merged root, target root or image. `OPI5PRO_CACHE_ROOT` may select another absolute dedicated directory; the builder canonicalises it and rejects `/`, the home directory, repository, workspace and output tree as unsafe cache roots.
+The persistent cache root defaults to `~/.cache/opi5pro-builder` and is deliberately outside the repository and workspace. It may contain verified downloads, compiler/language caches and the official bare Armbian Git mirror. It never contains a preinstalled union dependency image, mutable build checkout, userpatch tree, native application output, merged root, target root or image. `OPI5PRO_CACHE_ROOT` may select another absolute dedicated directory; the builder canonicalises it and rejects `/`, the home directory, repository, workspace and output tree as unsafe cache roots.
 
 ## Pipeline
 
@@ -38,7 +38,7 @@ Stages are lexically ordered and sourced by `build.sh` in one shell:
 | `15-stremio-toolchain` | Prove GTK/libadwaita/WebKitGTK/Rust/OpenSSL requirements |
 | `16-executable-preflight` | Resolve distro commands and paths used by launchers/gates |
 | `17-browser-preflight` | Validate official Brave/Mozilla keys, repos, ARM64 packages and executables |
-| `18-builder-dependency-cache` | Pull the ARM64 base, resolve an input key, create or verify the dependency-only builder image |
+| `18-builder-dependency-cache` | Pull and verify an ARM64 base, preserve it under a private content-addressed tag and prove architecture/identity; dependencies stay isolated per recipe |
 | `20-armbian-kernel` | Update/verify the official bare Armbian mirror, create a fresh detached checkout, inspect edge kernel and stage explicit Kconfig |
 | `21-arm64-build-helper` | Prepare reusable isolated ARM64 recipe runner |
 | `30-opencode-appimages` | Download OpenCode and extract official ARM64 emulator AppImages |
@@ -51,7 +51,7 @@ Stages are lexically ordered and sourced by `build.sh` in one shell:
 
 Snes9x is intentionally first because its pinned legacy dependency chain has been a high-risk GCC/CMake compatibility point. Stremio follows before other long builds because media is a hard requirement.
 
-Native artifacts remain sequential and retain the global eight-job cap. V3.26 does not speculate about parallel scheduling without host utilisation and memory evidence. Every stage emits a machine-readable elapsed-time row. Failed diagnostics contain `stage-timings.tsv`; successful output contains `<image-name>-STAGE-TIMINGS.tsv`.
+Native artifacts remain sequential and retain the global eight-job cap. V3.27 does not speculate about parallel scheduling without host utilisation and memory evidence. Every stage emits a machine-readable elapsed-time row. Failed diagnostics contain `stage-timings.tsv`; successful output contains `<image-name>-STAGE-TIMINGS.tsv`.
 
 ## Safe cache contract
 
@@ -78,7 +78,7 @@ On success, expect the raw `.img`, SHA-256 companion and build metadata under `~
 
 On failure, use the newest `failed-v<version>-<timestamp>` diagnostic directory. The disposable workspace is deleted so the next run cannot accidentally resume it. Diagnose the earliest real failure as described in `TROUBLESHOOTING.md`.
 
-V3.26 retains V3.24's complete runtime-package contract and V3.25's verified caches. Snes9x stays first, all ten native artifacts are rebuilt, and DuckStation's rolling ARM64 artifact must match its reviewed digest. Only immutable source acquisition is persistent; do not reuse any earlier version's checkout, userpatches, rootfs or artifacts.
+V3.27 retains verified downloads, compiler/language caches and the Armbian mirror, but deliberately removes V3.25/V3.26's union dependency-image cache. That union is not a valid APT transaction because different recipes require conflicting curl development providers. Each of the ten native artifacts installs only its declared dependency group in a fresh container on the same content-addressed ARM64 base. OpenCode, DuckStation and ARMSX2 payloads must match reviewed digests, and Armbian is checked out at an exact commit. Never reuse an earlier version's checkout, userpatches, rootfs or artifacts.
 
 The builder does not touch the Orange Pi's installed NVMe. Storage migration is a post-validation, on-device operation and is outside image generation.
 

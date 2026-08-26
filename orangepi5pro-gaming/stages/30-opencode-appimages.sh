@@ -1,5 +1,5 @@
 say "OpenCode ARM64"
-download "$OPENCODE_URL" "$DOWNLOADS/opencode.tar.gz"
+download "$OPENCODE_URL" "$DOWNLOADS/opencode.tar.gz" "$OPENCODE_ARM64_SHA256"
 mkdir -p "$ART/opencode/rootfs/usr/local/bin" "$WORK/opencode-extract"
 tar -xzf "$DOWNLOADS/opencode.tar.gz" -C "$WORK/opencode-extract"
 OPENCODE_BIN="$(find "$WORK/opencode-extract" -type f -name opencode -perm -u+x | head -n1)"
@@ -23,5 +23,5 @@ extract_appimage() {
     rm -rf -- "$out/input"; sha_file "$dl" > "$out/source.sha256"
 }
 extract_appimage duckstation "$DUCK_URL" "$DUCK_ARM64_SHA256"
-extract_appimage armsx2 "$ARMSX2_URL"
+extract_appimage armsx2 "$ARMSX2_URL" "$ARMSX2_ARM64_SHA256"
 install -Dm0755 "$PROFILE_DIR/recipes/build-ppsspp.sh" "$SCRIPTS/build-ppsspp.sh"

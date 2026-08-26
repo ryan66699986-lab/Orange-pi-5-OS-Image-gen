@@ -2,8 +2,8 @@ arm64_build() {
     local name="$1" script="$2" out="${ART}/${1}" media_root tool_cache
     local -a extra_mounts=()
     mkdir -p "$out"; bash -n "$script" || die "Generated ${name} build script has shell syntax errors"; say "ARM64 artifact: ${name}"
-    [[ -n "$BUILDER_IMAGE" ]] || die "ARM64 build-dependency image was not resolved"
-    docker image inspect "$BUILDER_IMAGE" >/dev/null 2>&1 || die "ARM64 build-dependency image is unavailable: $BUILDER_IMAGE"
+    [[ -n "$BUILDER_IMAGE" ]] || die "Content-addressed ARM64 build base was not resolved"
+    docker image inspect "$BUILDER_IMAGE" >/dev/null 2>&1 || die "ARM64 build base is unavailable: $BUILDER_IMAGE"
     tool_cache="$COMPILER_CACHE/tooling/$name"
     mkdir -p "$COMPILER_CACHE/ccache" "$tool_cache/cargo" "$tool_cache/go-build" "$tool_cache/go-mod"
     if [[ "$name" == moonlight ]]; then
@@ -12,7 +12,7 @@ arm64_build() {
         extra_mounts=(-v "$media_root:/opt/opi/media:ro")
     fi
     docker run --rm --platform linux/arm64 --env-file "$PROFILE_DIR/sources.env" \
-      -e JOBS="$JOBS" -e OPI_BUILD_DEPS_READY=1 \
+      -e JOBS="$JOBS" \
       -e CCACHE_DIR=/compiler-cache -e "CCACHE_NAMESPACE=opi5pro-${name}" \
       -e CCACHE_COMPILERCHECK=content -e CCACHE_MAXSIZE=20G \
       -e CARGO_HOME=/tool-cache/cargo -e GOCACHE=/tool-cache/go-build -e GOMODCACHE=/tool-cache/go-mod \
