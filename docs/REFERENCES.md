@@ -9,6 +9,8 @@ These are upstream sources for the architecture and maintenance decisions. Versi
 - [Armbian build framework overview](https://docs.armbian.com/build-framework/)
 - [Armbian build host preparation](https://docs.armbian.com/build-framework/getting-started/)
 - [Armbian build switches](https://docs.armbian.com/build-framework/switches/)
+- [Armbian Docker build and named cache volumes](https://docs.armbian.com/build-framework/building-with-docker/)
+- [ccache manual](https://ccache.dev/manual/latest.html)
 - [Armbian user configurations and `customize-image.sh`](https://docs.armbian.com/build-framework/user-configurations/)
 - [Armbian getting started and installer overview](https://docs.armbian.com/getting-started/)
 - [Linux V4L2 Request API](https://docs.kernel.org/userspace-api/media/mediactl/request-api.html)

@@ -13,7 +13,7 @@ This is not a generic Armbian remix. It is an appliance-style image with explici
 | Item | Current state |
 |---|---|
 | Profile | `orangepi5pro-gaming` |
-| Project generation | V3.24 |
+| Project generation | V3.25 |
 | Board | Orange Pi 5 Pro, RK3588S, 4 GB |
 | Base | Armbian build framework |
 | Distribution | Ubuntu 26.04 Resolute |
@@ -26,7 +26,7 @@ This is not a generic Armbian remix. It is an appliance-style image with explici
 | Audio | PipeWire HDMI/DisplayPort plus Bluetooth; HDMI selected once on first successful session, later user choices preserved |
 | Storage policy | SD boot/current root only during testing; final plan is SD boot + Btrfs NVMe root, later eMMC boot + Btrfs NVMe root |
 | Browser | Brave default, Firefox alternative; gamepad mouse/OSK available |
-| Status | active development; V3.24 converts resolved ELF owners into the explicit final package contract |
+| Status | active development; V3.25 adds verified external caches and per-stage timing without reusing workspaces or artifacts |
 
 ## Repository layout
 
@@ -61,6 +61,8 @@ cd Orange-pi-5-OS-Image-gen
 
 The build retains the project's strict fresh-workspace rule: every attempt deletes the versioned Armbian workspace and clones a new Armbian tree. Failed workspaces are diagnostic-only and are never resumed.
 
+V3.25 may reuse only external, verified dependency/download/compiler caches. It never reuses a source checkout, application build tree, merged root, Armbian workspace or generated artifact. The first run populates caches; later runs report cache hits and stage timings in the log.
+
 The builder never writes to the Orange Pi's installed NVMe. During image development the NVMe is limited to read-only inventory and SMART queries. See the storage handbook before any post-validation migration.
 
 ## Documentation map
@@ -81,7 +83,8 @@ The builder never writes to the Orange Pi's installed NVMe. During image develop
 | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) | Failure triage for builds and runtime faults |
 | [`docs/REFERENCES.md`](docs/REFERENCES.md) | Curated primary upstream documentation |
 | [`docs/STATUS.md`](docs/STATUS.md) | Current generation and outstanding proof |
-| [`docs/V3.24-AUDIT.md`](docs/V3.24-AUDIT.md) | Most recent systemic late-failure audit and V3.24 closure record |
+| [`docs/V3.25-AUDIT.md`](docs/V3.25-AUDIT.md) | Safe build-speed design, trust boundaries and regression evidence |
+| [`docs/V3.24-AUDIT.md`](docs/V3.24-AUDIT.md) | Systemic late-failure audit and V3.24 closure record |
 | [`docs/V3.23-AUDIT.md`](docs/V3.23-AUDIT.md) | V3.22 full-log diagnosis and explicit GLEW repair |
 | [`docs/V3.22-AUDIT.md`](docs/V3.22-AUDIT.md) | Prior whole-image assurance expansion |
 | [`SECURITY.md`](SECURITY.md) | Security model and responsible reporting |

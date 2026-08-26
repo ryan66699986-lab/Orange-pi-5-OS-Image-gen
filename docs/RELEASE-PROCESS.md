@@ -17,6 +17,7 @@ Documentation-only improvements that do not change the image may remain in the c
 - Add an early/static regression where possible.
 - Add target-root and offline-image assertions for runtime files/dependencies.
 - Preserve source pins and bounded network operations.
+- Keep dependency/download/compiler caches external, integrity-checked and unable to contain final artifacts.
 - Do not suppress mandatory install/build failures with `|| true`.
 - Never add installed-NVMe mutation to the build profile.
 
@@ -48,6 +49,7 @@ If the build fails, audit the complete log, fix the repository, increment the ge
 - Require terminal success and completed offline QA.
 - Record image filename, byte size and SHA-256.
 - Preserve source lock, artifact hashes and full log.
+- Preserve the stage timing table and cache-hit statistics.
 - Flash separate test media and verify the written media where the flashing tool permits it.
 - Keep the prior known-good SD untouched.
 
@@ -66,6 +68,8 @@ A candidate may be called known-good/final only when:
 - controller-only, audio, network, display and thermal requirements pass;
 - no unexplained WARN/FAIL remains;
 - the evidence record is tied to the exact image hash and repository commit.
+
+Cache-assisted builds remain candidates because cache hits do not bypass any gate. Before final promotion, review all cache validation messages and ensure any cache miss rebuilt successfully; never substitute a cached native artifact for a rebuilt one.
 
 Then update `STATUS.md` and `CHANGELOG.md`, commit the completed evidence summary (never private logs/content), run CI, merge and create an annotated Git tag matching the approved generation.
 

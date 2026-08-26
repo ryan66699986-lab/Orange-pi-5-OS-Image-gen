@@ -28,6 +28,9 @@ The build reads the image account password from `/dev/tty`, hashes it immediatel
 - Network operations are bounded and non-interactive.
 - Mandatory build/install/runtime gates fail closed.
 - Generated images are not committed to Git and must be distributed with a checksum and build manifest.
+- Persistent downloads require a matching SHA-256 sidecar, and reviewed digest pins remain authoritative over cache metadata.
+- The dependency image is keyed by the pulled ARM64 base content ID, build-package manifest and schema, then revalidates architecture and package presence on every use.
+- Native compiler caching uses content-based compiler identity and per-application namespaces. Cache entries never replace source-lock, linkage, target-root or raw-image checks.
 
 A pin is not a guarantee that upstream content is safe. Review upstream security advisories and changes before updating or rebuilding for distribution.
 

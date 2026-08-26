@@ -3,6 +3,20 @@ set -Eeuo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 apt_prepare() {
+    if [[ "${OPI_BUILD_DEPS_READY:-0}" == 1 ]]; then
+        for cmd in git curl file readelf ccache; do
+            command -v "$cmd" >/dev/null 2>&1 || {
+                echo "Cached ARM64 builder lacks command: $cmd" >&2
+                return 1
+            }
+        done
+        export PATH="/usr/lib/ccache:${PATH}"
+        ccache --show-config | grep -Eq '^\([^)]*\)[[:space:]]+compiler_check = content$' || {
+            echo "Native compiler cache is not using content verification" >&2
+            return 1
+        }
+        return 0
+    fi
     if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
         sed -Ei 's/^Components:.*/Components: main restricted universe multiverse/' \
             /etc/apt/sources.list.d/ubuntu.sources

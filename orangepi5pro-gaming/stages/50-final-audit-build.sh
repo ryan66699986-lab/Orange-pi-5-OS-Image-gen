@@ -9,7 +9,7 @@ grep -qx 'CONFIG_BTRFS_FS=y' "$USERPATCHES_DIR/linux-rockchip64-edge.config" || 
 good "Builder/customizer/kernel-config static audit passed"
 say "Starting Armbian Docker build"
 cd "$ARMBIAN" || die "Unable to enter the fresh Armbian workspace"
-./compile.sh build PREFER_DOCKER=yes BOARD=orangepi5pro BRANCH=edge RELEASE=resolute ROOTFS_TYPE=ext4 BUILD_MINIMAL=yes BUILD_DESKTOP=no NETWORKING_STACK=network-manager KERNEL_CONFIGURE=no EXPERT=yes COMPRESS_OUTPUTIMAGE=sha,img SHARE_LOG=no
+./compile.sh build PREFER_DOCKER=yes USE_CCACHE=yes BOARD=orangepi5pro BRANCH=edge RELEASE=resolute ROOTFS_TYPE=ext4 BUILD_MINIMAL=yes BUILD_DESKTOP=no NETWORKING_STACK=network-manager KERNEL_CONFIGURE=no EXPERT=yes COMPRESS_OUTPUTIMAGE=sha,img SHARE_LOG=no
 say "Locating raw image"
 mapfile -t IMAGES < <(find "$ARMBIAN/output/images" -maxdepth 1 -type f -name '*.img' -printf '%T@ %p\n' | sort -nr | awk '{print $2}')
 ((${#IMAGES[@]})) || die "No uncompressed .img found under Armbian output/images"

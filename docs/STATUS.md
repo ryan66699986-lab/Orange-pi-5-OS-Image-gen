@@ -1,8 +1,10 @@
 # Project status
 
-## Current generation: V3.24
+## Current generation: V3.25
 
-V3.24 is the active build under test.
+V3.25 is the active build under test.
+
+V3.25 retains V3.24's systemic runtime-package closure and changes only the host build plane. It adds verified external dependency, download and compiler caches plus structured stage timings. Every workspace, checkout, native build directory, merged root, Armbian tree and final artifact remains fresh. See `V3.25-AUDIT.md`.
 
 V3.23 explicitly fixed PPSSPP's `libGLEW.so.2.2` dependency. The subsequent sanity audit identified the broader reason similar failures could recur: a clean closure container could resolve an ELF through a package installed incidentally, but the package providing that library was not necessarily promoted into the final Armbian package manifest. V3.24 now derives owning packages from the successful ELF closure itself and makes the resulting complete manifest mandatory in both the target root and raw image. See `V3.24-AUDIT.md`.
 
@@ -51,4 +53,4 @@ A successful host build and offline image QA are necessary but not sufficient. H
 - a real Moonlight stream at the display mode detected at launch, using the hardware-accelerated FFmpeg decoder; a 4K display must therefore prove a 4K stream;
 - memory/thermal behavior on the 4 GB board.
 
-Until those pass, V3.24 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.
+Until those pass, V3.25 remains a development generation. Steam ARM64 remains experimental and cannot block the stable image. The newly installed NVMe may be enumerated and SMART-checked read-only, but it must not be mounted, partitioned, formatted or used for the OS until the image is finalized. After approval, use Armbian's interactive `armbian-install` to keep boot on SD while moving the root filesystem to Btrfs on NVMe. When eMMC is purchased, move the bootloader/boot environment to eMMC while retaining the NVMe Btrfs root, validate cold boot, and only then remove the SD card.

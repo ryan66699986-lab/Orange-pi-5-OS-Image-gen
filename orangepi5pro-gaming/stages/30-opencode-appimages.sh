@@ -13,7 +13,7 @@ docker pull --platform linux/amd64 ubuntu:26.04 >/dev/null
 install -Dm0755 "$PROFILE_DIR/recipes/extract-appimage.sh" "$SCRIPTS/extract-appimage.sh"
 extract_appimage() {
     local name="$1" url="$2" expected_sha="${3:-}" dl="${DOWNLOADS}/${1}.AppImage" out="${ART}/${1}"
-    say "Official ARM64 AppImage: ${name}"; download "$url" "$dl"; assert_aarch64_host_file "$dl"; mkdir -p "$out/input"; cp "$dl" "$out/input/app.AppImage"
+    say "Official ARM64 AppImage: ${name}"; download "$url" "$dl" "$expected_sha"; assert_aarch64_host_file "$dl"; mkdir -p "$out/input"; cp "$dl" "$out/input/app.AppImage"
     if [[ -n "$expected_sha" ]]; then
         actual_sha="$(sha_file "$dl")"
         [[ "$actual_sha" == "$expected_sha" ]] || die "${name}: pinned AppImage SHA-256 mismatch (expected ${expected_sha}, got ${actual_sha})"

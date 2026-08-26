@@ -29,6 +29,19 @@ Git profile inputs
 
 Native artifacts are built in isolated Ubuntu Resolute ARM64 containers through binfmt/QEMU. This catches architecture and package-resolution faults without contaminating the host. After merge, a separate clean ARM64 container installs the complete generated runtime package manifest, overlays the artifacts and checks critical ELF linkage. This prevents a development-only library from surviving the artifact build but disappearing from the target. The Armbian image itself is built in its own fresh workspace. Artifact build success, merged runtime closure, target dependency success and offline image presence are distinct gates.
 
+### Cache plane
+
+The cache plane is outside both the repository and versioned workspace. It has four narrowly defined stores:
+
+| Store | Reusable content | Excluded content |
+|---|---|---|
+| Builder image | Ubuntu ARM64 build dependencies, keyed by base image/package manifest/schema | Source checkouts and compiled applications |
+| Native ccache | Content-verified compiler results, namespaced per application | Linked/install trees and final artifacts |
+| Language caches | Cargo registry and Go module/build cache | Stremio/gamepad source and target directories |
+| Download cache | URL-keyed bytes plus SHA-256 integrity record | Extracted application trees and merged root |
+
+Cache hits optimize acquisition or compilation; they do not establish correctness. The normal source, architecture, runtime-manifest, merged-closure, target-root and offline-image gates still establish correctness. The Armbian workspace is freshly cloned even while Armbian's supported compiler cache remains external.
+
 ## Runtime session topology
 
 ```text

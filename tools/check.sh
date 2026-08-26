@@ -26,6 +26,11 @@ awk '/<<'\''RUNTIME_CLOSURE'\''/{copy=1; next} copy && /^RUNTIME_CLOSURE$/{exit}
   "$PROFILE/stages/33-runtime-closure.sh" > "$tmpdir/runtime-closure.sh"
 [[ -s "$tmpdir/runtime-closure.sh" ]]
 bash -n "$tmpdir/runtime-closure.sh"
+awk '/<<'\''BUILDER_DEPS'\''/{copy=1; next} copy && /^BUILDER_DEPS$/{copy=0; next} copy{print}' \
+  "$PROFILE/stages/18-builder-dependency-cache.sh" > "$tmpdir/builder-dependency-cache.sh"
+[[ -s "$tmpdir/builder-dependency-cache.sh" ]]
+bash -n "$tmpdir/builder-dependency-cache.sh"
+echo "Builder dependency container shell checks: PASS"
 
 # Validate the programs and structured configuration embedded inside the
 # customization and artifact-recipe heredocs. `bash -n` validates only the
@@ -218,6 +223,17 @@ grep -q '^pipewire-pulse$' "$PROFILE/packages/base.txt"
 ! grep -Eq '(^|/)(retroarch|libretro|lightdm|xfce)' "$PROFILE/packages/base.txt"
 
 grep -Eq '^gamepad\|build-essential( |$)' "$PROFILE/packages/build-groups.txt"
+grep -Fq 'BUILDER_CACHE_SCHEMA="v1-ubuntu26.04-arm64-ccache"' "$PROFILE/stages/18-builder-dependency-cache.sh"
+grep -Fq 'sha256sum "$WORK/build-package-groups.txt"' "$PROFILE/stages/18-builder-dependency-cache.sh"
+grep -Fq 'org.opi5pro.builder-cache-key' "$PROFILE/stages/18-builder-dependency-cache.sh"
+grep -Fq 'Cached ARM64 builder dependency is missing' "$PROFILE/stages/18-builder-dependency-cache.sh"
+grep -Fq 'OPI_BUILD_DEPS_READY=1' "$PROFILE/stages/21-arm64-build-helper.sh"
+grep -Fq 'CCACHE_COMPILERCHECK=content' "$PROFILE/stages/21-arm64-build-helper.sh"
+grep -Fq 'CCACHE_NAMESPACE=opi5pro-${name}' "$PROFILE/stages/21-arm64-build-helper.sh"
+grep -Fq 'CARGO_HOME=/tool-cache/cargo' "$PROFILE/stages/21-arm64-build-helper.sh"
+grep -Fq 'GOMODCACHE=/tool-cache/go-mod' "$PROFILE/stages/21-arm64-build-helper.sh"
+grep -Fq 'USE_CCACHE=yes' "$PROFILE/stages/50-final-audit-build.sh"
+! grep -Eq '\$ART|artifacts|overlay-root' "$PROFILE/stages/18-builder-dependency-cache.sh"
 grep -q 'command -v gcc' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'gcc --version' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'go env CGO_ENABLED' "$PROFILE/recipes/build-gamepad-osk.sh"
@@ -358,7 +374,19 @@ for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
   grep -Fq "$unit" "$PROFILE/stages/51-offline-image-qa.sh"
 done
 grep -Fq 'branches: [main]' "$ROOT/.github/workflows/ci.yml"
-grep -qx '3.24' "$ROOT/VERSION"
+grep -qx '3.25' "$ROOT/VERSION"
+grep -Fq 'CACHE_ROOT="${OPI5PRO_CACHE_ROOT:-${HOME}/.cache/opi5pro-builder}"' "$PROFILE/profile.env"
+grep -Fq 'os.path.realpath' "$PROFILE/stages/01-cleanup-workspace.sh"
+grep -Fq '"$REPO_ROOT"|"$REPO_ROOT"/*' "$PROFILE/stages/01-cleanup-workspace.sh"
+grep -Fq 'Unsafe cache root' "$PROFILE/stages/01-cleanup-workspace.sh"
+grep -Fq 'stage-timings.tsv' "$PROFILE/profile.env" "$PROFILE/stages/01-cleanup-workspace.sh"
+grep -Fq 'TIMING: scope=stage' "$ROOT/build.sh"
+grep -Fq 'TIMING: scope=build' "$ROOT/build.sh"
+grep -Fq 'TIMING_ROWS+=("stage\t${CURRENT_STAGE_NAME}\t${status}\t${elapsed}")' "$ROOT/build.sh"
+grep -Fq 'while (( TIMING_FLUSHED_COUNT < ${#TIMING_ROWS[@]} )); do' "$ROOT/build.sh"
+grep -Fq 'Verified download cache hit' "$PROFILE/stages/00-common.sh"
+grep -Fq 'Discarding invalid cached download' "$PROFILE/stages/00-common.sh"
+! grep -Fq 'CACHE_ROOT="${WORK}' "$PROFILE/profile.env"
 ! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/stages/00-common.sh"
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/recipes/arm64-common.sh"
@@ -436,6 +464,27 @@ if (
   exit 1
 fi
 echo "Runtime package-owner collector checks: PASS"
+
+# A cache hit must reuse the verified bytes, while corruption must invalidate
+# the cache entry and fetch the source again. This uses a local file URL so CI
+# exercises the real downloader without network access.
+(
+  source "$PROFILE/stages/00-common.sh"
+  DOWNLOAD_CACHE="$tmpdir/download-cache"
+  mkdir -p "$DOWNLOAD_CACHE"
+  printf 'first-payload\n' > "$tmpdir/download-source"
+  url="file://$tmpdir/download-source"
+  download "$url" "$tmpdir/download-first"
+  cmp "$tmpdir/download-source" "$tmpdir/download-first"
+  printf 'second-payload\n' > "$tmpdir/download-source"
+  download "$url" "$tmpdir/download-second"
+  cmp "$tmpdir/download-first" "$tmpdir/download-second"
+  key="$(printf '%s' "$url" | sha256sum | awk '{print $1}')"
+  printf 'corrupt\n' > "$DOWNLOAD_CACHE/$key"
+  download "$url" "$tmpdir/download-third"
+  cmp "$tmpdir/download-source" "$tmpdir/download-third"
+)
+echo "Persistent download-cache integrity checks: PASS"
 
 # Execute the embedded display policy with two outputs. A lower-resolution
 # current output must not win over the other output's EDID-preferred 4K mode.
@@ -517,6 +566,7 @@ required = {
     "docs/V3.22-AUDIT.md",
     "docs/V3.23-AUDIT.md",
     "docs/V3.24-AUDIT.md",
+    "docs/V3.25-AUDIT.md",
 }
 missing_required = sorted(path for path in required if not (root / path).is_file())
 if missing_required:

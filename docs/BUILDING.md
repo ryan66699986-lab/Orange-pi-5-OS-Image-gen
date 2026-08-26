@@ -21,6 +21,8 @@ Every attempt uses a fresh versioned workspace under the builder user's home dir
 
 Generated images and diagnostic bundles are written outside the repository under `~/opi5pro-images`.
 
+The persistent cache root defaults to `~/.cache/opi5pro-builder` and is deliberately outside the repository and workspace. It may contain verified downloads, an input-keyed dependency image, compiler results and language package caches. It never contains a source checkout, native application output, merged root, Armbian tree or image. `OPI5PRO_CACHE_ROOT` may select another absolute dedicated directory; the builder canonicalises it and rejects `/`, the home directory, repository, workspace and output tree as unsafe cache roots.
+
 ## Pipeline
 
 Stages are lexically ordered and sourced by `build.sh` in one shell:
@@ -36,6 +38,7 @@ Stages are lexically ordered and sourced by `build.sh` in one shell:
 | `15-stremio-toolchain` | Prove GTK/libadwaita/WebKitGTK/Rust/OpenSSL requirements |
 | `16-executable-preflight` | Resolve distro commands and paths used by launchers/gates |
 | `17-browser-preflight` | Validate official Brave/Mozilla keys, repos, ARM64 packages and executables |
+| `18-builder-dependency-cache` | Pull the ARM64 base, resolve an input key, create or verify the dependency-only builder image |
 | `20-armbian-kernel` | Clone fresh Armbian, create `userpatches`, inspect edge kernel and stage explicit Kconfig |
 | `21-arm64-build-helper` | Prepare reusable isolated ARM64 recipe runner |
 | `30-opencode-appimages` | Download OpenCode and extract official ARM64 emulator AppImages |
@@ -47,6 +50,17 @@ Stages are lexically ordered and sourced by `build.sh` in one shell:
 | `51-offline-image-qa` | Mount the completed raw image in a privileged container and inspect the final filesystem |
 
 Snes9x is intentionally first because its pinned legacy dependency chain has been a high-risk GCC/CMake compatibility point. Stremio follows before other long builds because media is a hard requirement.
+
+Native artifacts remain sequential and retain the global eight-job cap. V3.25 does not speculate about parallel scheduling without host utilisation and memory evidence. Every stage emits a machine-readable elapsed-time row. Failed diagnostics contain `stage-timings.tsv`; successful output contains `<image-name>-STAGE-TIMINGS.tsv`.
+
+## Safe cache contract
+
+- The dependency image key includes the pulled Ubuntu ARM64 image ID, `packages/build-groups.txt` hash and cache-schema version. Every hit reruns architecture, command and package-presence validation.
+- Native C/C++ compilation uses a shared 20 GiB ccache with content-based compiler verification and a separate namespace for each application.
+- Cargo and Go reuse only their external registry/module/compiler caches. Their source and target/output directories are recreated.
+- Downloads are keyed by their URL and accompanied by a SHA-256 sidecar. A corrupt hit is discarded. Assets with a reviewed digest, including DuckStation, must also match that digest.
+- Armbian runs with `USE_CCACHE=yes`; its build root and target root remain fresh.
+- Cache reuse never bypasses source locks, artifact architecture checks, ELF owner closure, target-root validation or raw-image QA.
 
 ## Reproducibility and manifests
 
@@ -63,7 +77,7 @@ On success, expect the raw `.img`, SHA-256 companion and build metadata under `~
 
 On failure, use the newest `failed-v<version>-<timestamp>` diagnostic directory. The disposable workspace is deleted so the next run cannot accidentally resume it. Diagnose the earliest real failure as described in `TROUBLESHOOTING.md`.
 
-V3.24 retains Snes9x first among native artifacts so the GCC 15/glslang compatibility gate is exercised before the long Stremio and emulator build sequence. It validates generated launchers from artifact recipes and requires their destination directories before redirection. The official Brave and Firefox ARM64 repositories are installed in an isolated preflight before native compilation starts. Brave's exact release-APT primary-key set is validated separately from its installer-script signing key. Moonlight's SDL2_ttf and Qt Quick Controls, gamepad-osk's SDL3/SDL3_ttf, PPSSPP's GLEW 2.2, and Mesa's PanVK runtime are explicit early package-preflight inputs. Every native build must emit a valid runtime manifest. The merged-runtime closure stage then scans core and extracted-AppImage ELF files, derives the dpkg owner of every resolved system library and merges those owners into the final package contract before Armbian starts. DuckStation's rolling ARM64 artifact must match its reviewed digest. The gamepad configuration explicitly enables controller-mouse support and is tested against upstream-style inline comments. Do not reuse any earlier version's Armbian workspace or artifacts.
+V3.25 retains V3.24's complete runtime-package contract and every hardware/runtime gate. Snes9x stays first, all ten native artifacts are rebuilt, and DuckStation's rolling ARM64 artifact must match its reviewed digest. The cache layer changes only how previously verified inputs and compiler results reach an otherwise fresh build. Do not reuse any earlier version's Armbian workspace or artifacts.
 
 The builder does not touch the Orange Pi's installed NVMe. Storage migration is a post-validation, on-device operation and is outside image generation.
 

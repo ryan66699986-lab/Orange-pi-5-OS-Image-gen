@@ -1,6 +1,19 @@
 # Changelog
 
-## V3.24 — current development generation
+## V3.25 — current development generation
+
+- Added a persistent, input-keyed Ubuntu Resolute ARM64 build-dependency image. Its key includes the pulled ARM64 base-image content ID, the complete build-package group file and an explicit cache schema. Every cached image is rechecked for ARM64 architecture, `ccache`, and every declared package before use.
+- Kept all application sources, build directories, output roots and final artifacts outside the dependency image. Every native artifact is still built sequentially in a new disposable container with an empty artifact directory.
+- Added a shared 20 GiB native `ccache` store with content-based compiler identity and per-application namespaces, plus isolated Cargo registry and Go module/build caches. Cache statistics are printed after every native build.
+- Enabled Armbian's supported `USE_CCACHE=yes` path so repeated identical kernel/U-Boot compilation can use its persistent Docker cache rather than rebuilding every object after a userspace-only failure.
+- Added a persistent URL-keyed download cache. Each hit must match its stored SHA-256; pinned downloads must also match the reviewed expected digest. Invalid entries are discarded and reacquired before entering the fresh workspace.
+- Added structured PASS/FAIL elapsed-time records for every stage and the complete build. Failure diagnostics retain the timing table; successful candidates place it beside the image manifest.
+- Added executable cache-integrity fixtures, embedded builder-container syntax checks and static guards proving caches stay outside the disposable workspace and never contain merged application artifacts.
+- Deliberately retained sequential artifact scheduling, the eight-job native cap, all source/runtime/image gates, fresh Armbian workspaces and the read-only NVMe policy.
+
+V3.25 is the next test generation, not a release declaration. The speed mechanisms require measurement in the next full build, and a completed image plus physical-board evidence remain mandatory.
+
+## V3.24
 
 - Re-audited the complete runtime-package path after the V3.22 PPSSPP/GLEW failure and treated the repeated late `.so` failures as one systemic defect rather than independent missing-package mistakes.
 - Changed the clean ARM64 closure stage from a pass/fail consumer into a package-contract producer: after every core and extracted-AppImage ELF resolves, the stage identifies every dpkg-owned system library provider and merges those packages into the final target manifest before Armbian starts.

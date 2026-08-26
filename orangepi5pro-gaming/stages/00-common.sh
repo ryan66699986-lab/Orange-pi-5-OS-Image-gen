@@ -5,7 +5,7 @@ die()  { printf '\n\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
 require_host_cmds() {
     local c
-    for c in docker git curl jq python3 openssl sha256sum file readelf tar unzip gzip xz sed awk grep find df tee sort tail timeout; do
+    for c in docker git curl jq python3 openssl sha256sum file readelf tar unzip gzip xz sed awk grep find df tee sort tail timeout install cp mv chmod; do
         command -v "$c" >/dev/null 2>&1 || die "Missing host command: $c"
     done
 }
@@ -66,7 +66,44 @@ require_download_url() {
     die "Required release asset could not be verified after retries: ${label}"
 }
 remote_branch_commit(){ local out; out="$(git_remote_ref "$1" "refs/heads/${2}")" || return 1; awk 'NR==1 {print $1}' <<<"$out"; }
-download(){ mkdir -p "$(dirname "$2")"; curl --retry 5 --retry-delay 2 --retry-all-errors -fL "$1" -o "$2"; }
+download() {
+    local url="$1" destination="$2" expected_sha="${3:-}"
+    local key cached sidecar actual recorded tmp
+    [[ -n "${DOWNLOAD_CACHE:-}" ]] || die "Persistent download cache path is unset"
+    mkdir -p "$DOWNLOAD_CACHE" "$(dirname "$destination")"
+    key="$(printf '%s' "$url" | sha256sum | awk '{print $1}')"
+    cached="${DOWNLOAD_CACHE}/${key}"
+    sidecar="${cached}.sha256"
+
+    if [[ -s "$cached" && -s "$sidecar" ]]; then
+        actual="$(sha_file "$cached")"
+        recorded="$(awk 'NR==1 {print $1}' "$sidecar")"
+        if [[ "$recorded" =~ ^[0-9a-f]{64}$ && "$actual" == "$recorded" && ( -z "$expected_sha" || "$actual" == "$expected_sha" ) ]]; then
+            cp -- "$cached" "$destination"
+            good "Verified download cache hit: $(basename "$destination")"
+            return 0
+        fi
+        warn "Discarding invalid cached download: $(basename "$destination")"
+        rm -f -- "$cached" "$sidecar"
+    fi
+
+    tmp="${cached}.part.$$"
+    rm -f -- "$tmp"
+    if ! curl --retry 5 --retry-delay 2 --retry-all-errors -fL "$url" -o "$tmp"; then
+        rm -f -- "$tmp"
+        return 1
+    fi
+    actual="$(sha_file "$tmp")"
+    if [[ -n "$expected_sha" && "$actual" != "$expected_sha" ]]; then
+        rm -f -- "$tmp"
+        die "Downloaded SHA-256 mismatch for $(basename "$destination") (expected ${expected_sha}, got ${actual})"
+    fi
+    chmod 0644 "$tmp"
+    mv -f -- "$tmp" "$cached"
+    printf '%s\n' "$actual" > "${sidecar}.tmp.$$"
+    mv -f -- "${sidecar}.tmp.$$" "$sidecar"
+    cp -- "$cached" "$destination"
+}
 sha_file(){ sha256sum "$1" | awk '{print $1}'; }
 assert_aarch64_host_file(){ local d; d="$(file -b "$1")"; grep -Eqi 'ELF .*ARM aarch64|ELF .*aarch64' <<<"$d" || die "Expected AArch64 ELF but got: $1 :: $d"; }
 remove_workdir() {

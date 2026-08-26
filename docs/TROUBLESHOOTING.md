@@ -21,6 +21,7 @@ Never weaken a hard gate solely because it stopped a long build. The V3.19 gamep
 Failed builds place a versioned bundle under `~/opi5pro-images/failed-v<version>-<timestamp>/`. Retain at minimum:
 
 - complete `build.log`;
+- `stage-timings.tsv`;
 - generated `versions.lock.json` if source resolution completed;
 - manifest/hashes produced before the stop;
 - the final console output and failure timestamp;
@@ -44,6 +45,18 @@ Do not attach plaintext passwords, tokens, private ROM/BIOS paths or other crede
 | Armbian U-Boot branch-shaped tag probes fail then recover | Resolver probing noise when valid tag resolution follows | Document/classify; no fix unless final resolution fails |
 | `invoke-rc.d` denied during rootfs install | Expected service suppression in offline/chroot package installation | Ignore only when package configuration succeeds |
 | Compiler warnings in pinned third-party code | Potential upstream issues, not automatically build failures | Review new/different warnings; successful gates do not erase runtime testing |
+
+## Cache failures or no speed-up
+
+The cache root defaults to `~/.cache/opi5pro-builder`. It is not a resumable workspace. Relevant log markers are `Verified download cache hit`, `Verified ARM64 build-dependency cache hit`, per-artifact ccache statistics and `TIMING:` rows.
+
+- If the builder image fails package verification, remove only the exact `opi5pro/ubuntu-resolute-arm64-builddeps:<key>` image reported by the log; the next run reconstructs it from the pulled ARM64 base and package manifest.
+- If a download fails integrity validation, the builder automatically discards only that URL-keyed entry and reacquires it. A pinned SHA mismatch remains fatal.
+- If native ccache has no hits, compare compiler/source/flag changes and the per-application namespace. A miss is valid and must compile normally.
+- Never repair a cache problem by keeping the failed workspace or copying its `artifacts/` tree.
+- Do not run `docker system prune --volumes` while preserving Armbian compiler caches; Armbian's Docker workflow uses named cache volumes.
+
+The first V3.25 build is expected to populate caches. Use the timing table from the first and next identical-source run before making performance claims.
 
 ## Password prompt problems
 
