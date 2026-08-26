@@ -48,6 +48,8 @@ libhidapi-hidraw0
 libhidapi-libusb0
 libqt6quickcontrols2-6
 libsdl2-ttf-2.0-0
+libsdl3-0
+libsdl3-ttf0
 libspa-0.2-bluetooth
 libva2
 libvulkan1
