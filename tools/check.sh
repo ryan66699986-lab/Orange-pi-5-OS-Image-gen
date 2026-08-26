@@ -22,6 +22,10 @@ awk '/<<'\''OFFLINE_QA'\''/{copy=1; next} copy && /^OFFLINE_QA$/{exit} copy{prin
   "$PROFILE/stages/51-offline-image-qa.sh" > "$tmpdir/offline-image-qa.sh"
 [[ -s "$tmpdir/offline-image-qa.sh" ]]
 bash -n "$tmpdir/offline-image-qa.sh"
+awk '/<<'\''RUNTIME_CLOSURE'\''/{copy=1; next} copy && /^RUNTIME_CLOSURE$/{exit} copy{print}' \
+  "$PROFILE/stages/33-runtime-closure.sh" > "$tmpdir/runtime-closure.sh"
+[[ -s "$tmpdir/runtime-closure.sh" ]]
+bash -n "$tmpdir/runtime-closure.sh"
 
 # Validate the programs and structured configuration embedded inside the
 # customization and artifact-recipe heredocs. `bash -n` validates only the
@@ -177,6 +181,11 @@ for pkg in libsdl2-ttf-2.0-0 libqt6quickcontrols2-6; do
   grep -qx "$pkg" "$PROFILE/packages/base.txt"
   grep -qx "$pkg" "$PROFILE/recipes/build-moonlight.sh"
 done
+for pkg in libsdl3-0 libsdl3-ttf0; do
+  grep -qx "$pkg" "$PROFILE/packages/base.txt"
+  grep -qx "$pkg" "$PROFILE/recipes/build-gamepad-osk.sh"
+  grep -Fq "$pkg" "$PROFILE/stages/33-runtime-closure.sh"
+done
 grep -Fq 'canonical="$(readlink -f "$lib"' "$PROFILE/recipes/arm64-common.sh"
 grep -Fq 'dpkg-query -S "$canonical"' "$PROFILE/recipes/arm64-common.sh"
 grep -q '^nvme-cli$' "$PROFILE/packages/base.txt"
@@ -188,6 +197,10 @@ grep -Eq '^gamepad\|build-essential( |$)' "$PROFILE/packages/build-groups.txt"
 grep -q 'command -v gcc' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'gcc --version' "$PROFILE/recipes/build-gamepad-osk.sh"
 grep -q 'go env CGO_ENABLED' "$PROFILE/recipes/build-gamepad-osk.sh"
+grep -Fq 'sort -u -o /out/runtime-packages.txt' "$PROFILE/recipes/build-gamepad-osk.sh"
+grep -Fq 'ARM64 merged-artifact runtime closure preflight' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq 'Unresolved shared library before Armbian build' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq 'libSDL3_ttf.so.0' "$PROFILE/stages/33-runtime-closure.sh"
 grep -Fq -- '-DCMAKE_POLICY_VERSION_MINIMUM=3.5' "$PROFILE/recipes/build-snes9x.sh"
 grep -Fq 'git_net -C /src fetch --depth=1 origin "$SNES9X_COMMIT"' "$PROFILE/recipes/build-snes9x.sh"
 grep -Fq "sed -i '/^#include <algorithm>\$/i #include <cstdint>'" "$PROFILE/recipes/build-snes9x.sh"
@@ -267,11 +280,14 @@ grep -Fq 'RPATH|RUNPATH' "$PROFILE/recipes/build-moonlight.sh"
 grep -Fq 'install -d -m0755 /out/rootfs/usr/local/bin' "$PROFILE/recipes/build-moonlight.sh"
 grep -Fq 'bash -n /out/rootfs/usr/local/bin/moonlight-qt' "$PROFILE/recipes/build-moonlight.sh"
 grep -Fq 'Moonlight launcher was not packaged as an executable' "$PROFILE/recipes/build-moonlight.sh"
-grep -Fq 'Mandatory Moonlight runtime package missing' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq 'Mandatory application runtime package missing' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
 grep -Fq 'Moonlight SDL2_ttf runtime link is missing' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
 grep -Fq 'Moonlight Qt Quick Controls runtime link is missing' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
 grep -Fq '/usr/lib/aarch64-linux-gnu/libSDL2_ttf-2.0.so.0' "$PROFILE/stages/51-offline-image-qa.sh"
 grep -Fq '/usr/lib/aarch64-linux-gnu/libQt6QuickControls2.so.6' "$PROFILE/stages/51-offline-image-qa.sh"
+grep -Fq '/usr/lib/aarch64-linux-gnu/libSDL3.so.0' "$PROFILE/stages/51-offline-image-qa.sh"
+grep -Fq '/usr/lib/aarch64-linux-gnu/libSDL3_ttf.so.0' "$PROFILE/stages/51-offline-image-qa.sh"
+grep -Fq 'gamepad-osk runtime link is missing' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
 grep -Fq 'Built Moonlight commit differs from source lock' "$PROFILE/stages/31-native-artifacts.sh"
 for component in PPSSPP RMG Flycast melonDS Azahar; do
   grep -Fq "Built ${component} commit differs from source lock" "$PROFILE/stages/31-native-artifacts.sh"
@@ -295,7 +311,7 @@ for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
   grep -Fq "$unit" "$PROFILE/stages/51-offline-image-qa.sh"
 done
 grep -Fq 'branches: [main]' "$ROOT/.github/workflows/ci.yml"
-grep -qx '3.20' "$ROOT/VERSION"
+grep -qx '3.21' "$ROOT/VERSION"
 ! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/stages/00-common.sh"
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/recipes/arm64-common.sh"
