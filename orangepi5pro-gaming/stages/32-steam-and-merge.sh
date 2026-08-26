@@ -34,5 +34,14 @@ PY
 say "Merging validated artifacts (root-safe)"
 mkdir -p "$OVERLAY"
 docker run --rm --platform linux/amd64 -v "$ART:/artifacts:ro" -v "$OVERLAY:/overlay" ubuntu:26.04 bash -ceu 'shopt -s nullglob; for d in /artifacts/*/rootfs; do cp -a "$d/." /overlay/; done'
-RUNTIME_PKGS="${WORK}/runtime-packages.generated.txt"; find "$ART" -name runtime-packages.txt -type f -exec cat {} + 2>/dev/null | sed '/^[[:space:]]*$/d' | sort -u > "$RUNTIME_PKGS" || true
+for name in snes9x stremio-native ppsspp es-de gamepad-osk moonlight rmg flycast melonds azahar; do
+    manifest="$ART/$name/runtime-packages.txt"
+    [[ -s "$manifest" ]] || die "Mandatory native artifact lacks a runtime package manifest: $name"
+    if grep -Ev '^[a-z0-9][a-z0-9+.-]*(:[a-z0-9]+)?$' "$manifest" | grep -q .; then
+        die "Malformed runtime package entry in artifact: $name"
+    fi
+done
+RUNTIME_PKGS="${WORK}/runtime-packages.generated.txt"
+find "$ART" -name runtime-packages.txt -type f -exec cat {} + 2>/dev/null | sed '/^[[:space:]]*$/d' | sort -u > "$RUNTIME_PKGS"
+[[ -s "$RUNTIME_PKGS" ]] || die "Merged native runtime package manifest is empty"
 cp "$WORK/required-packages.base.txt" "$WORK/required-packages.txt"; cat "$RUNTIME_PKGS" >> "$WORK/required-packages.txt"; sort -u -o "$WORK/required-packages.txt" "$WORK/required-packages.txt"

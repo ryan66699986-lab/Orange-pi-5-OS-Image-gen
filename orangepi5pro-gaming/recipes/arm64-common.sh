@@ -34,31 +34,44 @@ assert_aarch64_tree() {
 
 collect_runtime_packages() {
     local root="$1" out="$2"
-    local libs pkgs f desc lib
+    local libs pkgs unmapped f desc lib owner canonical
     libs="$(mktemp)"
     pkgs="$(mktemp)"
+    unmapped="$(mktemp)"
     : > "$libs"
     : > "$pkgs"
+    : > "$unmapped"
 
     while IFS= read -r -d '' f; do
         desc="$(file -b "$f" 2>/dev/null || true)"
         [[ "$desc" == ELF* ]] || continue
-        ldd "$f" 2>/dev/null |
+        LD_LIBRARY_PATH="${RUNTIME_LIBRARY_PATH:-}" ldd "$f" 2>/dev/null |
           awk '/=> \// {print $3} /^\// {print $1}' >> "$libs" || true
     done < <(find "$root" -type f -print0)
 
     sort -u "$libs" | while read -r lib; do
         [[ -e "$lib" ]] || continue
-        owner="$(dpkg-query -S "$lib" 2>/dev/null | head -n1 | cut -d: -f1 || true)"
+        owner="$(dpkg-query -S "$lib" 2>/dev/null | head -n1 | awk -F': ' '{pkg=$1; sub(/:[^:]+$/, "", pkg); print pkg}' || true)"
         if [[ -z "$owner" ]]; then
             # ldd may report /lib/... on a merged-/usr system while dpkg owns
             # the canonical /usr/lib/... pathname. Query both representations.
             canonical="$(readlink -f "$lib" 2>/dev/null || true)"
-            [[ -n "$canonical" ]] && owner="$(dpkg-query -S "$canonical" 2>/dev/null | head -n1 | cut -d: -f1 || true)"
+            [[ -n "$canonical" ]] && owner="$(dpkg-query -S "$canonical" 2>/dev/null | head -n1 | awk -F': ' '{pkg=$1; sub(/:[^:]+$/, "", pkg); print pkg}' || true)"
         fi
-        [[ -n "$owner" ]] && printf '%s\n' "$owner"
+        if [[ -n "$owner" ]]; then
+            printf '%s\n' "$owner"
+        elif [[ "$lib" == /lib/* || "$lib" == /usr/lib/* || "$canonical" == /lib/* || "$canonical" == /usr/lib/* ]]; then
+            printf '%s -> %s\n' "$lib" "${canonical:-<unresolved>}" >> "$unmapped"
+        fi
     done | sed '/^$/d' | sort -u > "$pkgs"
 
+    if [[ -s "$unmapped" ]]; then
+        echo "Resolved system libraries without a dpkg owner under $root:" >&2
+        cat "$unmapped" >&2
+        rm -f "$libs" "$pkgs" "$unmapped"
+        return 1
+    fi
+
     cp "$pkgs" "$out"
-    rm -f "$libs" "$pkgs"
+    rm -f "$libs" "$pkgs" "$unmapped"
 }

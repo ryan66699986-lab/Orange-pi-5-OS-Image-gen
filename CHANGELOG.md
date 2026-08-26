@@ -1,6 +1,19 @@
 # Changelog
 
-## V3.23 — current development generation
+## V3.24 — current development generation
+
+- Re-audited the complete runtime-package path after the V3.22 PPSSPP/GLEW failure and treated the repeated late `.so` failures as one systemic defect rather than independent missing-package mistakes.
+- Changed the clean ARM64 closure stage from a pass/fail consumer into a package-contract producer: after every core and extracted-AppImage ELF resolves, the stage identifies every dpkg-owned system library provider and merges those packages into the final target manifest before Armbian starts.
+- Isolated core, DuckStation and ARMSX2 library search paths during early closure, owner derivation and target validation, preventing one bundled application library from accidentally satisfying another application.
+- Made the generic runtime collector fail on any resolved `/lib` or `/usr/lib` library without a dpkg owner instead of silently omitting it. It now honors the combined project/AppImage library path and normalizes multiarch package ownership after merged-`/usr` canonicalization.
+- Require nonempty, syntactically valid runtime manifests from all ten native artifacts before merging.
+- Require every package in the generated runtime contract in the assembled target root and again in the completed raw image, while retaining named checks for critical PPSSPP, Moonlight, gamepad, PanVK, firmware and filesystem runtimes.
+- Added executable regression fixtures proving `libGLEW.so.2.2` maps through `/lib` to the `libglew2.2:arm64` owner and proving an unowned system library is rejected.
+- Retained V3.23's explicit GLEW declaration, warning cleanup and all earlier hardware, controller, display, audio, browser, storage and native Stremio requirements.
+
+V3.24 is the next test generation, not a release declaration. A completed image and physical-board evidence are still mandatory.
+
+## V3.23
 
 - Audited all 48,650 lines of the V3.22 log. Every source, package, browser, kernel and executable preflight passed; all ten native ARM64 artifacts built; Azahar passed 64/64 tests; Steam and GE-Proton staged; the Armbian kernel and root filesystem built; and customization reached the final target-root ELF gate.
 - Fixed the terminal PPSSPP failure: `PPSSPPSDL` requires `libGLEW.so.2.2`, but the target did not contain `libglew2.2`. The clean merged-runtime container happened to receive GLEW through an indirect dependency path, so its successful closure check did not prove the same package selection in Armbian's populated root.
@@ -26,7 +39,7 @@ V3.23 is the next test generation, not a release declaration. A completed image 
 
 V3.22 is the next test generation, not a release declaration. A fresh completed build and all physical-board gates remain required.
 
-## V3.21 — current development generation
+## V3.21
 
 - Audited all 48,431 lines of the V3.20 log. Every source/build/browser/kernel preflight passed; all ten native ARM64 artifacts completed; Azahar passed all 64 tests; Steam and GE-Proton staged; artifact collision and package-solvability gates passed; and Armbian reached final target-root validation.
 - Fixed the terminal linkage failure where `gamepad-osk` resolved `libSDL3.so.0` but could not resolve `libSDL3_ttf.so.0`. The isolated build had `libsdl3-ttf-dev` and its runtime dependency, but the generated target package set did not retain `libsdl3-ttf0`.

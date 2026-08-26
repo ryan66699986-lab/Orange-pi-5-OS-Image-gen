@@ -200,6 +200,18 @@ grep -Fq 'PPSSPP build artifact does not resolve libGLEW.so.2.2' "$PROFILE/recip
 grep -Fq 'PPSSPP does not resolve libGLEW.so.2.2 in merged runtime preflight' "$PROFILE/stages/33-runtime-closure.sh"
 grep -Fq 'canonical="$(readlink -f "$lib"' "$PROFILE/recipes/arm64-common.sh"
 grep -Fq 'dpkg-query -S "$canonical"' "$PROFILE/recipes/arm64-common.sh"
+grep -Fq 'Resolved system libraries without a dpkg owner' "$PROFILE/recipes/arm64-common.sh"
+grep -Fq 'RUNTIME_LIBRARY_PATH' "$PROFILE/recipes/arm64-common.sh"
+grep -Fq 'Mandatory native artifact lacks a runtime package manifest' "$PROFILE/stages/32-steam-and-merge.sh"
+grep -Fq 'runtime-packages.closure.txt' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq 'core_runtime_roots=' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq 'collect_runtime_packages "$root" "$derived"' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq 'LD_LIBRARY_PATH=/opt/opi/media/lib:/opt/opi/media/lib64 ldd "$path"' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq 'find "$root" -type f' "$PROFILE/stages/33-runtime-closure.sh"
+grep -Fq 'find "$root" -type f' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+! grep -Fq 'find "${appimage_roots[@]}" -type f' "$PROFILE/stages/33-runtime-closure.sh" "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq 'Generated runtime contract package missing from target rootfs' "$PROFILE/rootfs/customize.d/70-final-rootfs-gate.sh.inc"
+grep -Fq 'Final image runtime package contract: PASS' "$PROFILE/stages/51-offline-image-qa.sh"
 grep -q '^nvme-cli$' "$PROFILE/packages/base.txt"
 grep -q '^libspa-0.2-bluetooth$' "$PROFILE/packages/base.txt"
 grep -q '^pipewire-pulse$' "$PROFILE/packages/base.txt"
@@ -346,7 +358,7 @@ for unit in sleep.target suspend.target hibernate.target hybrid-sleep.target; do
   grep -Fq "$unit" "$PROFILE/stages/51-offline-image-qa.sh"
 done
 grep -Fq 'branches: [main]' "$ROOT/.github/workflows/ci.yml"
-grep -qx '3.23' "$ROOT/VERSION"
+grep -qx '3.24' "$ROOT/VERSION"
 ! grep -En 'builder:"v[0-9]+\.[0-9]+-repo"|opi5pro-v[0-9]+\.[0-9]+-work|failed-v[0-9]+\.[0-9]+' "$PROFILE/profile.env" "$PROFILE"/stages/*.sh
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/stages/00-common.sh"
 grep -Fq 'timeout --kill-after=30s' "$PROFILE/recipes/arm64-common.sh"
@@ -379,6 +391,51 @@ grep -qx 'enabled = true' "$tmpdir/gamepad-mouse-missing.ini"
 sed -i 's/^enabled = true$/enabled = true  # legal inline comment/' "$tmpdir/gamepad-mouse-missing.ini"
 awk 'BEGIN{ok=0} /^[[:space:]]*\[mouse\][[:space:]]*$/{mouse=1;next} /^[[:space:]]*\[/{mouse=0} mouse && /^[[:space:]]*enabled[[:space:]]*=[[:space:]]*true([[:space:]]*#.*)?[[:space:]]*$/{ok=1} END{exit !ok}' "$tmpdir/gamepad-mouse-missing.ini"
 echo "gamepad-osk config mutation/validation checks: PASS"
+
+# Prove the generic ELF runtime collector handles the merged-/usr path form
+# that caused past late failures. The first dpkg lookup intentionally fails;
+# the canonical retry must retain the multiarch package owner. Also prove that
+# an unowned system library now fails instead of being silently discarded.
+mkdir -p "$tmpdir/runtime-owner-bin" "$tmpdir/runtime-owner-root"
+touch "$tmpdir/runtime-owner-root/app" "$tmpdir/runtime-owner-root/libGLEW.so.2.2"
+cat > "$tmpdir/runtime-owner-bin/file" <<'EOF'
+#!/usr/bin/env bash
+echo 'ELF 64-bit LSB pie executable, ARM aarch64'
+EOF
+cat > "$tmpdir/runtime-owner-bin/ldd" <<'EOF'
+#!/usr/bin/env bash
+echo "libGLEW.so.2.2 => ${RUNTIME_OWNER_FAKE_LIB:?} (0x0000)"
+EOF
+cat > "$tmpdir/runtime-owner-bin/readlink" <<'EOF'
+#!/usr/bin/env bash
+[[ "$1" == -f ]] || exit 2
+echo /usr/lib/aarch64-linux-gnu/libGLEW.so.2.2.0
+EOF
+cat > "$tmpdir/runtime-owner-bin/dpkg-query" <<'EOF'
+#!/usr/bin/env bash
+[[ "${RUNTIME_OWNER_UNMAPPED:-0}" == 0 && "${*: -1}" == /usr/lib/aarch64-linux-gnu/libGLEW.so.2.2.0 ]] || exit 1
+echo 'libglew2.2:arm64: /usr/lib/aarch64-linux-gnu/libGLEW.so.2.2.0'
+EOF
+chmod +x "$tmpdir/runtime-owner-bin"/*
+(
+  source "$PROFILE/recipes/arm64-common.sh"
+  RUNTIME_OWNER_FAKE_LIB="$tmpdir/runtime-owner-root/libGLEW.so.2.2" \
+    PATH="$tmpdir/runtime-owner-bin:$PATH" collect_runtime_packages \
+    "$tmpdir/runtime-owner-root" "$tmpdir/runtime-owner-packages.txt"
+)
+grep -qx libglew2.2 "$tmpdir/runtime-owner-packages.txt"
+if (
+  source "$PROFILE/recipes/arm64-common.sh"
+  RUNTIME_OWNER_UNMAPPED=1 \
+    RUNTIME_OWNER_FAKE_LIB="$tmpdir/runtime-owner-root/libGLEW.so.2.2" \
+    PATH="$tmpdir/runtime-owner-bin:$PATH" \
+    collect_runtime_packages "$tmpdir/runtime-owner-root" \
+      "$tmpdir/runtime-owner-unmapped.txt" 2>/dev/null
+); then
+  echo "Runtime collector accepted an unowned system library" >&2
+  exit 1
+fi
+echo "Runtime package-owner collector checks: PASS"
 
 # Execute the embedded display policy with two outputs. A lower-resolution
 # current output must not win over the other output's EDID-preferred 4K mode.
@@ -459,6 +516,7 @@ required = {
     "docs/VALIDATION-RECORD-TEMPLATE.md",
     "docs/V3.22-AUDIT.md",
     "docs/V3.23-AUDIT.md",
+    "docs/V3.24-AUDIT.md",
 }
 missing_required = sorted(path for path in required if not (root / path).is_file())
 if missing_required:
