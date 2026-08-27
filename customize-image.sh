@@ -39,7 +39,6 @@ normalize_command() {
 }
 normalize_command rmg /usr/local/bin/RMG
 normalize_command melonds /usr/local/bin/melonDS
-normalize_command azahar /usr/local/bin/azahar-qt /usr/local/bin/azahar /usr/local/bin/citra-qt
 normalize_command snes9x-gtk /usr/local/bin/snes9x
 normalize_command dolphin-emu /usr/bin/dolphin-emu /usr/games/dolphin-emu
 normalize_command sameboy /usr/bin/sameboy /usr/games/sameboy /usr/bin/sameboy-sdl /usr/games/sameboy-sdl
@@ -98,7 +97,7 @@ declare -A emulator=(
     [ps1]='duckstation -batch' [ps2]='armsx2' [psp]='ppsspp' [n64]='rmg'
     [dreamcast]='flycast' [gc]='dolphin-emu -b -e' [wii]='dolphin-emu -b -e'
     [gb]='sameboy' [gbc]='sameboy' [gba]='mgba-qt' [nds]='melonds'
-    [n3ds]='azahar' [nes]='nestopia' [snes]='snes9x-gtk'
+    [nes]='nestopia' [snes]='snes9x-gtk'
 )
 for system in "${!emulator[@]}"; do
     printf '#!/usr/bin/env bash\nexec opi-run-game %s "$@"\n' "${emulator[$system]}" > "/usr/local/libexec/opi-emulators/${system}"

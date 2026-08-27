@@ -40,7 +40,6 @@ This repository is a standard Armbian `userpatches` profile for the Orange Pi 5 
 | Game Boy / Color | Ubuntu AArch64 SameBoy |
 | Game Boy Advance | Ubuntu AArch64 mGBA |
 | Nintendo DS | melonDS built from source |
-| Nintendo 3DS | Azahar built from source |
 | NES | Ubuntu AArch64 Nestopia |
 | SNES | Snes9x built from source |
 

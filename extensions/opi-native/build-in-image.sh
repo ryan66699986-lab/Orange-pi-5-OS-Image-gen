@@ -90,7 +90,6 @@ run_recipe ppsspp build-ppsspp.sh
 run_recipe rmg build-rmg.sh
 run_recipe flycast build-flycast.sh
 run_recipe melonds build-melonds.sh
-run_recipe azahar build-azahar.sh
 run_recipe snes9x build-snes9x.sh
 extract_appimage duckstation /tmp/opi-downloads/duckstation.AppImage
 extract_appimage armsx2 /tmp/opi-downloads/armsx2.AppImage
@@ -137,7 +136,6 @@ require_any() {
 require_any RMG /usr/local/bin/RMG /usr/local/bin/rmg
 require_any Flycast /usr/local/bin/flycast
 require_any melonDS /usr/local/bin/melonDS /usr/local/bin/melonds
-require_any Azahar /usr/local/bin/azahar /usr/local/bin/azahar-qt /usr/local/bin/citra-qt
 require_any Snes9x /usr/local/bin/snes9x-gtk /usr/local/bin/snes9x
 
 echo "Native AArch64 application build complete"

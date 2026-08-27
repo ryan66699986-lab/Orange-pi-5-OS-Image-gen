@@ -5,7 +5,6 @@ on:
     paths:
       - '.github/workflows/native-recipe-audit.yml'
       - 'extensions/opi-native/recipes/arm64-common.sh'
-      - 'extensions/opi-native/recipes/build-azahar.sh'
       - 'extensions/opi-native/recipes/build-snes9x.sh'
       - 'extensions/opi-native/sources.env'
   workflow_dispatch:
@@ -22,9 +21,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Azahar
-            recipe: build-azahar.sh
-            source_key: AZAHAR_COMMIT
           - name: Snes9x
             recipe: build-snes9x.sh
             source_key: SNES9X_COMMIT
@@ -40,15 +36,6 @@ jobs:
           set -a
           source extensions/opi-native/sources.env
           set +a
-
-          if [[ "${{ matrix.name }}" == Azahar ]]; then
-            # Reproduce the exact corrupt-package state from the failed image.
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends qt6-base-dev
-            multiarch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
-            sudo mv "/usr/lib/${multiarch}/cmake/Qt6Gui/Qt6GuiConfig.cmake" \
-              /tmp/Qt6GuiConfig.cmake.missing
-          fi
 
           source_value="${!matrix_source_key}"
           sudo env JOBS=4 "${matrix_source_key}=${source_value}" \
