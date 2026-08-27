@@ -22,7 +22,6 @@ labwc_startup() {
     if [[ "${OPI_DIRECT_GAMING:-0}" != 1 ]]; then
         opi-controller-nav >/dev/null 2>&1 &
     fi
-    opi-audio-hdmi-default >/dev/null 2>&1 &
     while [[ -e "${HOME}/.config/opi/password-setup-required" ]]; do
         foot -F -e opi-first-boot || true
     done
@@ -45,7 +44,6 @@ gamescope_client() {
     opi-game-exit-hotkey >/dev/null 2>&1 &
     hotkey_pid=$!
     trap 'kill "${osk_pid}" "${hotkey_pid}" 2>/dev/null || true' EXIT INT TERM
-    opi-audio-hdmi-default >/dev/null 2>&1 &
     case "${1:-}" in
         first-boot) foot -F -e opi-first-boot ;;
         es-de) es-de ;;

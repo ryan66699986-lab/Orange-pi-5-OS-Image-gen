@@ -16,6 +16,7 @@ for required in /opt/es-de/ES-DE.AppImage /opt/stremio/stremio /opt/opi/media/bi
     [[ -e "${required}" ]] || { echo "Missing native application: ${required}" >&2; exit 1; }
 done
 cp -a "${ASSETS}/." /
+glib-compile-schemas /usr/share/glib-2.0/schemas
 
 normalize_command() {
     local name="$1" candidate
@@ -62,6 +63,10 @@ if grep -qE '^[[:space:]]*combo_period_ms[[:space:]]*=' /etc/gamepad-osk/config;
 else
     printf '\ncombo_period_ms = 200\n' >> /etc/gamepad-osk/config
 fi
+grep -qx 'toggle_combo = guide+a' /etc/gamepad-osk/config || {
+    echo 'Controller OSK Guide+A mapping was not installed' >&2
+    exit 1
+}
 printf 'gaming\n' > /etc/opi/session-mode
 
 cat > /usr/local/bin/es-de <<'EOF'

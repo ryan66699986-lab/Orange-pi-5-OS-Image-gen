@@ -11,7 +11,7 @@ This repository is a standard Armbian `userpatches` profile for the Orange Pi 5 
 - direct Labwc/ES-DE recovery if Gamescope fails
 - native Stremio 1.1.4 with dedicated V4L2 Request FFmpeg 8.1 and mpv 0.41.0
 - native Moonlight and controller on-screen keyboard
-- PipeWire HDMI/DisplayPort audio by default, with Bluetooth available
+- PipeWire HDMI/DisplayPort and Bluetooth audio, selected by the user during hardware setup
 - NetworkManager, Brave, Firefox and OpenCode
 - native AArch64 standalone emulators for every configured system
 
@@ -90,3 +90,17 @@ The installed dedicated media tools are:
 ```
 
 Stremio and Moonlight are linked to that dedicated media stack rather than the distribution FFmpeg.
+
+After booting on the Orange Pi, the included lightweight validator can check the
+installed stack, a user-supplied codec sample, and evidence from real Stremio
+playback:
+
+```bash
+opi-stremio-validate stack
+opi-stremio-validate file /path/to/test-video.mkv
+# Play a video in Stremio, then:
+opi-stremio-validate playback
+```
+
+Audio-output choice, Moonlight display tuning, USB ROM layout and other personal
+policy are deliberately left for on-device setup after the base SD image boots.

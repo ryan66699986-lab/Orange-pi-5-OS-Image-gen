@@ -34,6 +34,13 @@ jobs:
               compile(path.read_text(), str(path), 'exec')
           ET.parse('overlay/rootfs/usr/local/share/opi/es_systems.xml')
           PY
+          grep -qx uinput overlay/rootfs/etc/modules-load.d/opi-controller.conf
+          grep -qx uhid overlay/rootfs/etc/modules-load.d/opi-controller.conf
+          grep -Fq HID_PLAYSTATION extensions/opi-native/opi-native.sh
+          grep -Fq 'toggle_combo = guide+a' customize-image.sh
+          grep -Fq 'opi-stremio-validate playback' README.md
+          test ! -e overlay/rootfs/usr/local/bin/opi-audio-hdmi-default
+          ! grep -Rqs 'opi-moonlight-display-auto' extensions overlay customize-image.sh
 
       - name: Resolve profile through current Armbian
         run: |

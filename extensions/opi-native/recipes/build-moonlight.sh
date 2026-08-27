@@ -113,9 +113,6 @@ set -Eeuo pipefail
 export LD_LIBRARY_PATH="/opt/opi/media/lib:${LD_LIBRARY_PATH:-}"
 export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland;xcb}"
 mkdir -p "$HOME/.local/state/opi"
-if [[ -x /usr/local/bin/opi-moonlight-display-auto ]]; then
-  /usr/local/bin/opi-moonlight-display-auto || echo "WARN: Moonlight display auto-detection failed; retaining safe configuration" >&2
-fi
 exec /opt/opi/apps/moonlight/moonlight-qt "$@" \
   2> >(tee -a "$HOME/.local/state/opi/moonlight.log" >&2)
 WRAPPER

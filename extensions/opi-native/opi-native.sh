@@ -7,17 +7,16 @@ function extension_prepare_config__opi_native_requirements() {
 	[[ "${BRANCH}" == "edge" ]] || exit_with_error "opi-native requires the Armbian edge branch"
 }
 
-function late_family_config__opi_native_decoder_kernel() {
-	local kernel_config="${SRC}/config/kernel/linux-rockchip64-edge.config"
-	local setting
-	[[ -f "${kernel_config}" ]] || exit_with_error "Missing Armbian edge kernel configuration"
-	for setting in \
-		CONFIG_MEDIA_SUPPORT=m \
-		CONFIG_VIDEO_ROCKCHIP_VDEC=m \
-		CONFIG_VIDEO_HANTRO=m \
-		CONFIG_VSI_IOMMU=y; do
-		grep -qx "${setting}" "${kernel_config}" || exit_with_error "Armbian edge kernel lacks ${setting}"
-	done
+# These are hardware-enablement requirements, not user policy. Armbian invokes
+# this hook once for artifact hashing and again with the kernel .config loaded.
+function custom_kernel_config__opi_native_hardware_support() {
+	opts_m+=(
+		MEDIA_SUPPORT VIDEO_ROCKCHIP_VDEC VIDEO_HANTRO
+		DRM_PANTHOR DRM_DW_HDMI_AHB_AUDIO DRM_DW_HDMI_GP_AUDIO
+		INPUT_JOYDEV INPUT_UINPUT UHID BT_HIDP JOYSTICK_XPAD
+		HID_NINTENDO HID_PLAYSTATION HID_SONY HID_STEAM
+	)
+	opts_y+=(VSI_IOMMU HIDRAW SND_SOC_ROCKCHIP_I2S_TDM)
 }
 
 function pre_customize_image__100_build_opi_native_applications() {
