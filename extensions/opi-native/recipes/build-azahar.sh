@@ -14,6 +14,13 @@ git_net -C /src fetch --depth=1 origin "$AZAHAR_COMMIT"
 git -C /src checkout --detach FETCH_HEAD
 git_net -C /src submodule update --init --recursive --depth=1
 [[ "$(git -C /src rev-parse HEAD)" == "$AZAHAR_COMMIT" ]] || { echo "Azahar checkout does not match source lock" >&2; exit 1; }
+
+# Armbian uses CI-style logging even for a local Docker build. Do not let those
+# outer-build variables make Azahar believe its own source checkout is running
+# in GitHub Actions: its GenerateBuildInfo.cmake evaluates GITHUB_REF_TYPE
+# without first checking that the value is non-empty.
+unset CI GITHUB_ACTIONS GITHUB_REF_TYPE GITHUB_REF_NAME
+
 cmake -S /src -B /src/build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/usr/local \
