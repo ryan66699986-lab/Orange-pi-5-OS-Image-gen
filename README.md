@@ -67,7 +67,6 @@ again. Do not delete or reclone the Armbian directory:
 
 ```bash
 cd ~/armbian-opi5pro
-git pull --ff-only
 git -C userpatches pull --ff-only
 ./compile.sh build opi5pro
 ```
