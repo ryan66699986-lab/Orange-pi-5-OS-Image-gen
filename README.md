@@ -46,7 +46,8 @@ This repository is a standard Armbian `userpatches` profile for the Orange Pi 5 
 
 ## Build on CachyOS
 
-Docker must already work for the current user and ARM64 binfmt support must be enabled.
+Docker must already work for the current user. Armbian prepares the remaining
+build dependencies inside its container.
 
 ```bash
 cd ~
