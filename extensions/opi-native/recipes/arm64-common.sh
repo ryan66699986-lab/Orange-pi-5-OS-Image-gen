@@ -25,6 +25,26 @@ apt_prepare() {
     apt-get install -y --no-install-recommends ca-certificates git curl file binutils
 }
 
+ensure_qt6_cmake() {
+    local multiarch cmake_root module missing=0
+    multiarch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+    cmake_root="/usr/lib/${multiarch}/cmake"
+    for module in Qt6Core Qt6Gui Qt6Widgets; do
+        [[ -f "${cmake_root}/${module}/${module}Config.cmake" ]] || missing=1
+    done
+    if (( missing )); then
+        # A prior native recipe may leave qt6-base-dev marked installed while
+        # its CMake metadata is absent. Reinstall the package before configure.
+        apt-get install -y --no-install-recommends --reinstall qt6-base-dev
+    fi
+    for module in Qt6Core Qt6Gui Qt6Widgets; do
+        [[ -f "${cmake_root}/${module}/${module}Config.cmake" ]] || {
+            echo "qt6-base-dev lacks ${module} CMake metadata" >&2
+            return 1
+        }
+    done
+}
+
 git_net() {
     GIT_TERMINAL_PROMPT=0 timeout --kill-after=30s 15m \
         git -c http.lowSpeedLimit=1024 -c http.lowSpeedTime=120 "$@"

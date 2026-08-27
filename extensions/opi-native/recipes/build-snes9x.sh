@@ -6,7 +6,8 @@ apt-get install -y --no-install-recommends \
   build-essential cmake ninja-build pkg-config git gettext \
   libsdl2-dev libgtkmm-3.0-dev libgtk-3-dev libminizip-dev \
   portaudio19-dev glslang-dev libpulse-dev libasound2-dev \
-  libxv-dev libxinerama-dev libwayland-dev
+  libegl1-mesa-dev libgl1-mesa-dev libpng-dev zlib1g-dev \
+  libx11-dev libxext-dev libxrandr-dev libxv-dev libxinerama-dev libwayland-dev
 git init /src
 git -C /src remote add origin https://github.com/snes9xgit/snes9x.git
 git_net -C /src fetch --depth=1 origin "$SNES9X_COMMIT"

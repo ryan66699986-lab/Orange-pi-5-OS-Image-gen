@@ -7,6 +7,7 @@ apt-get install -y --no-install-recommends \
   libcurl4-gnutls-dev libpcap0.8-dev libsdl2-dev libarchive-dev \
   libenet-dev libzstd-dev libfaad-dev \
   qt6-base-dev qt6-base-private-dev qt6-multimedia-dev qt6-svg-dev
+ensure_qt6_cmake
 git init /src
 git -C /src remote add origin https://github.com/melonDS-emu/melonDS.git
 git_net -C /src fetch --depth=1 origin "$MELONDS_COMMIT"

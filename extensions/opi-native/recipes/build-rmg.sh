@@ -9,6 +9,7 @@ apt-get install -y --no-install-recommends \
   libfreetype-dev libgl1-mesa-dev libglu1-mesa-dev \
   zlib1g-dev binutils-dev qt6-base-dev qt6-websockets-dev \
   qt6-svg-dev libvulkan-dev
+ensure_qt6_cmake
 git init /src
 git -C /src remote add origin https://github.com/Rosalie241/RMG.git
 git_net -C /src fetch --depth=1 origin "$RMG_COMMIT"

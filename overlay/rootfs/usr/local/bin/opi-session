@@ -11,6 +11,14 @@ start_osk() {
 }
 
 labwc_startup() {
+    for agent in \
+        /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 \
+        /usr/lib/policykit-1/polkit-gnome-authentication-agent-1; do
+        if [[ -x "${agent}" ]]; then
+            "${agent}" >/dev/null 2>&1 &
+            break
+        fi
+    done
     swaybg -c '#20242b' >/dev/null 2>&1 &
     waybar >/dev/null 2>&1 &
     nm-applet --indicator >/dev/null 2>&1 &

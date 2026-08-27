@@ -12,6 +12,7 @@ apt-get install -y --no-install-recommends \
   qml6-module-qtquick-controls qml6-module-qtquick-templates \
   qml6-module-qtquick-layouts qml6-module-qtqml-workerscript \
   qml6-module-qtquick-window qml6-module-qtquick
+ensure_qt6_cmake
 git init /src
 git -C /src remote add origin https://github.com/moonlight-stream/moonlight-qt.git
 git_net -C /src fetch --depth=1 origin "$MOONLIGHT_COMMIT"

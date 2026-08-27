@@ -15,6 +15,13 @@ for required in /opt/es-de/ES-DE.AppImage /opt/stremio/stremio /opt/opi/media/bi
     /opt/opi/apps/ppsspp/PPSSPPSDL /opt/opi/apps/duckstation/AppRun /opt/opi/apps/armsx2/AppRun; do
     [[ -e "${required}" ]] || { echo "Missing native application: ${required}" >&2; exit 1; }
 done
+for required_command in greetd tuigreet gamescope labwc foot nm-applet blueman-applet \
+    swaybg waybar mako udiskie brave-browser firefox opencode; do
+    command -v "${required_command}" >/dev/null 2>&1 || {
+        echo "Missing required image package/command: ${required_command}" >&2
+        exit 1
+    }
+done
 cp -a "${ASSETS}/." /
 glib-compile-schemas /usr/share/glib-2.0/schemas
 

@@ -5,6 +5,20 @@ function extension_prepare_config__opi_native_requirements() {
 	[[ "${ARCH}" == "arm64" ]] || exit_with_error "opi-native requires an arm64 image"
 	[[ "${RELEASE}" == "resolute" ]] || exit_with_error "opi-native requires Ubuntu Resolute"
 	[[ "${BRANCH}" == "edge" ]] || exit_with_error "opi-native requires the Armbian edge branch"
+
+	# PACKAGE_LIST_ADDITIONAL is obsolete in current Armbian. Use the supported
+	# package-list API so these packages are included in the rootfs artifact key
+	# as well as installed in the image.
+	add_packages_to_rootfs \
+		greetd tuigreet gamescope labwc foot wvkbd xwayland seatd dbus-user-session \
+		pipewire-audio pipewire-jack wireplumber libspa-0.2-bluetooth alsa-utils \
+		pavucontrol playerctl bluez blueman network-manager network-manager-gnome \
+		swaybg waybar mako-notifier udiskie policykit-1-gnome libfuse2t64 \
+		desktop-file-utils xdg-utils xdg-user-dirs locales mesa-utils \
+		mesa-vulkan-drivers vulkan-tools v4l-utils libinput-tools joystick evtest \
+		python3-evdev edid-decode gamemode btrfs-progs nvme-cli smartmontools \
+		git curl ca-certificates jq unzip firefox dolphin-emu dolphin-emu-data \
+		mgba-qt sameboy nestopia
 }
 
 # These are hardware-enablement requirements, not user policy. Armbian invokes

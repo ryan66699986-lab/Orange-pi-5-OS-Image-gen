@@ -8,6 +8,7 @@ apt-get install -y --no-install-recommends \
   libsdl2-dev libx11-dev libxext-dev libusb-1.0-0-dev \
   qt6-base-dev qt6-base-private-dev qt6-l10n-tools \
   qt6-multimedia-dev qt6-tools-dev qt6-tools-dev-tools libvulkan-dev
+ensure_qt6_cmake
 git init /src
 git -C /src remote add origin https://github.com/azahar-emu/azahar.git
 git_net -C /src fetch --depth=1 origin "$AZAHAR_COMMIT"

@@ -99,7 +99,7 @@ sort -u -o "${RUNTIME_PACKAGES}" "${RUNTIME_PACKAGES}"
 if [[ -s "${RUNTIME_PACKAGES}" ]]; then
     xargs -r apt-get install -y --no-install-recommends < "${RUNTIME_PACKAGES}"
 fi
-printf '%s\n' brave-browser brave-keyring nodejs >> "${RUNTIME_PACKAGES}"
+printf '%s\n' brave-browser brave-keyring nodejs qt6-qpa-plugins qt6-wayland >> "${RUNTIME_PACKAGES}"
 sort -u -o "${RUNTIME_PACKAGES}" "${RUNTIME_PACKAGES}"
 
 apt-mark showmanual | sort -u > /tmp/opi-manual-after.txt
@@ -123,5 +123,21 @@ for required in \
     /opt/opi/apps/armsx2/AppRun; do
     [[ -e "${required}" ]] || { echo "Missing installed native application: ${required}" >&2; exit 1; }
 done
+
+require_any() {
+    local label="$1"
+    shift
+    local candidate
+    for candidate in "$@"; do
+        [[ -x "${candidate}" ]] && return 0
+    done
+    echo "Missing installed native application: ${label} (checked: $*)" >&2
+    return 1
+}
+require_any RMG /usr/local/bin/RMG /usr/local/bin/rmg
+require_any Flycast /usr/local/bin/flycast
+require_any melonDS /usr/local/bin/melonDS /usr/local/bin/melonds
+require_any Azahar /usr/local/bin/azahar /usr/local/bin/azahar-qt /usr/local/bin/citra-qt
+require_any Snes9x /usr/local/bin/snes9x-gtk /usr/local/bin/snes9x
 
 echo "Native AArch64 application build complete"
