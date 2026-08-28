@@ -8,7 +8,7 @@ apt-get install -y --no-install-recommends \
   libegl1-mesa-dev libgl1-mesa-dev libopus-dev \
   libsdl2-dev libsdl2-ttf-dev libssl-dev \
   libva-dev libvdpau-dev libxkbcommon-dev \
-  libavcodec-dev libavutil-dev libswscale-dev \
+  libavcodec-dev libavformat-dev libavutil-dev libswscale-dev \
   wayland-protocols libdrm-dev \
   qml6-module-qtquick-controls qml6-module-qtquick-templates \
   qml6-module-qtquick-layouts qml6-module-qtqml-workerscript \
