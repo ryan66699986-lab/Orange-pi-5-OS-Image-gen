@@ -113,14 +113,14 @@ make_port() {
     chmod 0755 "/home/ryan/ROMs/ports/${name}.sh"
 }
 make_port Desktop 'sudo /usr/local/bin/opi-session set desktop'
-make_port Network 'foot -F -e nmtui'
-make_port Audio 'pavucontrol'
-make_port Bluetooth 'blueman-manager'
+make_port Network 'opi-controller-app foot -F -e nmtui'
+make_port Audio 'opi-controller-app pavucontrol'
+make_port Bluetooth 'opi-controller-app blueman-manager'
 make_port Stremio 'opi-controller-app stremio'
 make_port Moonlight 'opi-controller-app moonlight-qt'
 make_port Brave 'opi-controller-app brave-browser'
 make_port Firefox 'opi-controller-app firefox'
-make_port OpenCode 'foot -F -e opencode'
+make_port OpenCode 'opi-controller-app foot -F -e opencode'
 make_port Reboot 'sudo /usr/bin/systemctl reboot'
 make_port Power-Off 'sudo /usr/bin/systemctl poweroff'
 
