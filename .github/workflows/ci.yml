@@ -40,6 +40,7 @@ jobs:
           grep -Fq add_packages_to_rootfs extensions/opi-native/opi-native.sh
           ! grep -Rqs '^PACKAGE_LIST_ADDITIONAL=' .
           grep -Fq -- '-DLIBUSB_INSTALL_TARGETS=OFF' extensions/opi-native/recipes/build-flycast.sh
+          grep -Fq 'normalize_command gamescope /usr/bin/gamescope /usr/games/gamescope' customize-image.sh
           grep -Fq 'toggle_combo = guide+a' customize-image.sh
           grep -Fq 'opi-stremio-validate playback' README.md
           test ! -e overlay/rootfs/usr/local/bin/opi-audio-hdmi-default

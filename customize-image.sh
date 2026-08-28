@@ -15,15 +15,6 @@ for required in /opt/es-de/ES-DE.AppImage /opt/stremio/stremio /opt/opi/media/bi
     /opt/opi/apps/ppsspp/PPSSPPSDL /opt/opi/apps/duckstation/AppRun /opt/opi/apps/armsx2/AppRun; do
     [[ -e "${required}" ]] || { echo "Missing native application: ${required}" >&2; exit 1; }
 done
-for required_command in greetd tuigreet gamescope labwc foot nm-applet blueman-applet \
-    swaybg waybar mako udiskie brave-browser firefox opencode; do
-    command -v "${required_command}" >/dev/null 2>&1 || {
-        echo "Missing required image package/command: ${required_command}" >&2
-        exit 1
-    }
-done
-cp -a "${ASSETS}/." /
-glib-compile-schemas /usr/share/glib-2.0/schemas
 
 normalize_command() {
     local name="$1" candidate
@@ -37,6 +28,22 @@ normalize_command() {
     echo "Missing native command: ${name}" >&2
     exit 1
 }
+
+# Ubuntu installs gamescope in /usr/games, which is not in the PATH used by
+# Armbian's non-login customization chroot. Provide a stable command path for
+# both the build-time check and the greetd session at boot.
+normalize_command gamescope /usr/bin/gamescope /usr/games/gamescope
+
+for required_command in greetd tuigreet gamescope labwc foot nm-applet blueman-applet \
+    swaybg waybar mako udiskie brave-browser firefox opencode; do
+    command -v "${required_command}" >/dev/null 2>&1 || {
+        echo "Missing required image package/command: ${required_command}" >&2
+        exit 1
+    }
+done
+cp -a "${ASSETS}/." /
+glib-compile-schemas /usr/share/glib-2.0/schemas
+
 normalize_command rmg /usr/local/bin/RMG
 normalize_command melonds /usr/local/bin/melonDS
 normalize_command snes9x-gtk /usr/local/bin/snes9x
