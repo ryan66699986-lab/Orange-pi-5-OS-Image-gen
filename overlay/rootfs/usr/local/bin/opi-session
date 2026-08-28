@@ -49,9 +49,11 @@ direct() {
 gamescope_client() {
     start_osk
     osk_pid=$!
+    udiskie --automount --no-notify >/dev/null 2>&1 &
+    udiskie_pid=$!
     opi-game-exit-hotkey >/dev/null 2>&1 &
     hotkey_pid=$!
-    trap 'kill "${osk_pid}" "${hotkey_pid}" 2>/dev/null || true' EXIT INT TERM
+    trap 'kill "${osk_pid}" "${udiskie_pid}" "${hotkey_pid}" 2>/dev/null || true' EXIT INT TERM
     case "${1:-}" in
         first-boot) foot -F -e opi-first-boot ;;
         es-de) es-de ;;
