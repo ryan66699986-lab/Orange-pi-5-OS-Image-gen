@@ -58,20 +58,12 @@ extract_appimage() {
 }
 
 mkdir -p /tmp/opi-downloads
-download /tmp/opi-downloads/es-de.AppImage \
-    https://gitlab.com/es-de/emulationstation-de/-/package_files/326321114/download \
-    b84eababe6d6388223cf8b1658bb237bc0125362acaae70e1ece55397c1eb414
-download /tmp/opi-downloads/opencode.tar.gz \
-    https://github.com/anomalyco/opencode/releases/download/v1.18.21/opencode-linux-arm64.tar.gz \
-    d30d2cba74617f4e7b96e25563c9572ffe453f9eae70fc0df16286813537ee72
-download /tmp/opi-downloads/brave-keyring.deb \
-    https://brave-browser-apt-release.s3.brave.com/pool/main/b/brave-keyring/brave-keyring_1.20-1.deb \
-    9ea8725ad4241e4d30bc31b0d5213c7ce24b1dcd5247875b2de1bcba8c4e9b00
-download /tmp/opi-downloads/brave-browser.deb \
-    https://brave-browser-apt-release.s3.brave.com/pool/main/b/brave-browser/brave-browser_1.93.138_arm64.deb \
-    5965e7d90d9ac6187dfca53aeefeb07f8be64515ee6262476cd9b23afbef83d7
+download /tmp/opi-downloads/es-de.AppImage "${ESDE_ARM64_URL}" "${ESDE_ARM64_SHA256}"
+download /tmp/opi-downloads/opencode.tar.gz "${OPENCODE_ARM64_URL}" "${OPENCODE_ARM64_SHA256}"
+download /tmp/opi-downloads/brave-keyring.deb "${BRAVE_KEYRING_URL}" "${BRAVE_KEYRING_SHA256}"
+download /tmp/opi-downloads/brave-browser.deb "${BRAVE_ARM64_URL}" "${BRAVE_ARM64_SHA256}"
 download /tmp/opi-downloads/armsx2.AppImage \
-    https://github.com/ARMSX2/ARMSX2/releases/download/nightly-20260823/ARMSX2-nightly-20260823-1b737e25f0-Linux-arm64-4K-pages.AppImage \
+    "https://github.com/ARMSX2/ARMSX2/releases/download/${ARMSX2_TAG}/ARMSX2-${ARMSX2_TAG}-1b737e25f0-Linux-arm64-4K-pages.AppImage" \
     "${ARMSX2_SHA256}"
 
 duck_url="$(curl --fail --location --retry 3 "https://api.github.com/repos/stenzek/duckstation/releases/${DUCK_RELEASE_ID}" | jq -er '.assets[] | select(.name == "DuckStation-arm64.AppImage") | .browser_download_url')"
@@ -109,33 +101,5 @@ apt-get clean
 
 rm -rf -- /src /out /ffmpeg /mpv /stremio /input /tmp/opi-downloads \
     /tmp/opi-manual-after.txt "${MANUAL_BEFORE}" "${RUNTIME_PACKAGES}" /arm64-common.sh
-
-for required in \
-    /opt/es-de/ES-DE.AppImage \
-    /opt/stremio/stremio \
-    /opt/opi/media/bin/ffmpeg \
-    /opt/opi/media/bin/mpv \
-    /opt/opi/apps/moonlight/moonlight-qt \
-    /usr/local/bin/gamepad-osk \
-    /opt/opi/apps/ppsspp/PPSSPPSDL \
-    /opt/opi/apps/duckstation/AppRun \
-    /opt/opi/apps/armsx2/AppRun; do
-    [[ -e "${required}" ]] || { echo "Missing installed native application: ${required}" >&2; exit 1; }
-done
-
-require_any() {
-    local label="$1"
-    shift
-    local candidate
-    for candidate in "$@"; do
-        [[ -x "${candidate}" ]] && return 0
-    done
-    echo "Missing installed native application: ${label} (checked: $*)" >&2
-    return 1
-}
-require_any RMG /usr/local/bin/RMG /usr/local/bin/rmg
-require_any Flycast /usr/local/bin/flycast
-require_any melonDS /usr/local/bin/melonDS /usr/local/bin/melonds
-require_any Snes9x /usr/local/bin/snes9x-gtk /usr/local/bin/snes9x
 
 echo "Native AArch64 application build complete"

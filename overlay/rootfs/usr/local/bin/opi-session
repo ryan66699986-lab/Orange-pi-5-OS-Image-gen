@@ -61,16 +61,29 @@ gamescope_client() {
 
 gaming() {
     export XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=opi-gaming XDG_CURRENT_DESKTOP=gamescope
-    gamescope_args=(-f)
-    if command -v edid-decode >/dev/null && gamescope --help 2>&1 | grep -q -- '--hdr-enabled'; then
-        for edid in /sys/class/drm/card*-*/edid; do
-            [[ -s "${edid}" ]] || continue
-            if edid-decode "${edid}" 2>/dev/null | grep -q 'HDR Static Metadata'; then
-                gamescope_args+=(--hdr-enabled)
-                break
-            fi
-        done
+    gamescope_args=()
+
+    # Pick a connected DRM connector. Gamescope's DRM backend then selects the
+    # connector's preferred mode rather than this profile hard-coding a mode.
+    selected_drm=""
+    for status in /sys/class/drm/card*-*/status; do
+        [[ -r "${status}" ]] || continue
+        [[ "$(cat "${status}")" == connected ]] || continue
+        selected_drm="$(dirname "${status}")"
+        connector="$(basename "${selected_drm}")"
+        connector="${connector#card*-}"
+        gamescope_args+=(-O "${connector}")
+        break
+    done
+
+    # Enable HDR only when the selected connected display advertises HDR metadata.
+    if [[ -n "${selected_drm}" && -s "${selected_drm}/edid" ]] &&
+       command -v edid-decode >/dev/null &&
+       gamescope --help 2>&1 | grep -q -- '--hdr-enabled' &&
+       edid-decode "${selected_drm}/edid" 2>/dev/null | grep -q 'HDR Static Metadata'; then
+        gamescope_args+=(--hdr-enabled)
     fi
+
     while [[ -e "${HOME}/.config/opi/password-setup-required" ]]; do
         gamescope "${gamescope_args[@]}" -- opi-session gamescope-client first-boot || { direct; return; }
     done

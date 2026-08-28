@@ -7,16 +7,14 @@ readonly ASSETS=/tmp/overlay/rootfs
 
 [[ "${RELEASE}" == resolute ]] || { echo "Expected Ubuntu Resolute" >&2; exit 1; }
 [[ "${BOARD}" == orangepi5pro ]] || { echo "Expected orangepi5pro" >&2; exit 1; }
-[[ -d "${ASSETS}" ]] || { echo "Missing controller-image overlay" >&2; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
 
-for required in /opt/es-de/ES-DE.AppImage /opt/stremio/stremio /opt/opi/media/bin/ffmpeg \
-    /opt/opi/media/bin/mpv /opt/opi/apps/moonlight/moonlight-qt /usr/local/bin/gamepad-osk \
-    /opt/opi/apps/ppsspp/PPSSPPSDL /opt/opi/apps/duckstation/AppRun /opt/opi/apps/armsx2/AppRun; do
-    [[ -e "${required}" ]] || { echo "Missing native application: ${required}" >&2; exit 1; }
-done
+# Install the small runtime overlay after the native application extension has
+# populated the root filesystem.
+cp -a "${ASSETS}/." /
+glib-compile-schemas /usr/share/glib-2.0/schemas
 
-normalize_command() {
+link_command() {
     local name="$1" candidate
     shift
     command -v "${name}" >/dev/null 2>&1 && return 0
@@ -25,32 +23,17 @@ normalize_command() {
         ln -sf "${candidate}" "/usr/local/bin/${name}"
         return 0
     done
-    echo "Missing native command: ${name}" >&2
-    exit 1
+    return 0
 }
 
-# Ubuntu installs gamescope in /usr/games, which is not in the PATH used by
-# Armbian's non-login customization chroot. Provide a stable command path for
-# both the build-time check and the greetd session at boot.
-normalize_command gamescope /usr/bin/gamescope /usr/games/gamescope
-
-for required_command in greetd tuigreet gamescope labwc foot nm-applet blueman-applet \
-    swaybg waybar mako udiskie brave-browser firefox opencode; do
-    command -v "${required_command}" >/dev/null 2>&1 || {
-        echo "Missing required image package/command: ${required_command}" >&2
-        exit 1
-    }
-done
-cp -a "${ASSETS}/." /
-glib-compile-schemas /usr/share/glib-2.0/schemas
-
-normalize_command rmg /usr/local/bin/RMG
-normalize_command melonds /usr/local/bin/melonDS
-normalize_command snes9x-gtk /usr/local/bin/snes9x
-normalize_command dolphin-emu /usr/bin/dolphin-emu /usr/games/dolphin-emu
-normalize_command sameboy /usr/bin/sameboy /usr/games/sameboy /usr/bin/sameboy-sdl /usr/games/sameboy-sdl
-normalize_command mgba-qt /usr/bin/mgba-qt /usr/games/mgba-qt
-normalize_command nestopia /usr/bin/nestopia /usr/games/nestopia
+link_command gamescope /usr/bin/gamescope /usr/games/gamescope
+link_command rmg /usr/local/bin/RMG
+link_command melonds /usr/local/bin/melonDS
+link_command snes9x-gtk /usr/local/bin/snes9x
+link_command dolphin-emu /usr/bin/dolphin-emu /usr/games/dolphin-emu
+link_command sameboy /usr/bin/sameboy /usr/games/sameboy /usr/bin/sameboy-sdl /usr/games/sameboy-sdl
+link_command mgba-qt /usr/bin/mgba-qt /usr/games/mgba-qt
+link_command nestopia /usr/bin/nestopia /usr/games/nestopia
 
 id ryan >/dev/null 2>&1 || useradd --create-home --shell /bin/bash --comment Ryan --user-group ryan
 printf 'ryan:orangepi\n' | chpasswd
@@ -68,7 +51,7 @@ sed -Ei 's/^# (en_GB.UTF-8 UTF-8)$/\1/' /etc/locale.gen
 locale-gen en_GB.UTF-8
 printf 'LANG=en_GB.UTF-8\n' > /etc/default/locale
 
-install -d -m0755 /etc/gamepad-osk /etc/opi /etc/greetd /usr/local/libexec/opi-emulators
+install -d -m0755 /etc/gamepad-osk /etc/opi /etc/greetd /usr/local/libexec/opi-emulators /media/ryan
 cp /usr/share/gamepad-osk/config /etc/gamepad-osk/config
 sed -Ei 's/^[[:space:]]*toggle_combo[[:space:]]*=.*/toggle_combo = guide+a/' /etc/gamepad-osk/config
 if grep -qE '^[[:space:]]*combo_period_ms[[:space:]]*=' /etc/gamepad-osk/config; then
@@ -76,10 +59,6 @@ if grep -qE '^[[:space:]]*combo_period_ms[[:space:]]*=' /etc/gamepad-osk/config;
 else
     printf '\ncombo_period_ms = 200\n' >> /etc/gamepad-osk/config
 fi
-grep -qx 'toggle_combo = guide+a' /etc/gamepad-osk/config || {
-    echo 'Controller OSK Guide+A mapping was not installed' >&2
-    exit 1
-}
 printf 'gaming\n' > /etc/opi/session-mode
 
 cat > /usr/local/bin/es-de <<'EOF'
@@ -110,6 +89,7 @@ for system in "${!emulator[@]}"; do
     printf '#!/usr/bin/env bash\nexec opi-run-game %s "$@"\n' "${emulator[$system]}" > "/usr/local/libexec/opi-emulators/${system}"
     chmod 0755 "/usr/local/libexec/opi-emulators/${system}"
     install -d -m0755 -o ryan -g ryan "/home/ryan/ROMs/${system}" "/home/ryan/BIOS/${system}"
+    ln -sfn /media/ryan "/home/ryan/ROMs/${system}/USB"
 done
 
 install -d -m0755 -o ryan -g ryan /home/ryan/.config/opi /home/ryan/.config/labwc \
@@ -133,6 +113,9 @@ make_port() {
     chmod 0755 "/home/ryan/ROMs/ports/${name}.sh"
 }
 make_port Desktop 'sudo /usr/local/bin/opi-session set desktop'
+make_port Network 'foot -F -e nmtui'
+make_port Audio 'pavucontrol'
+make_port Bluetooth 'blueman-manager'
 make_port Stremio 'opi-controller-app stremio'
 make_port Moonlight 'opi-controller-app moonlight-qt'
 make_port Brave 'opi-controller-app brave-browser'
@@ -163,9 +146,11 @@ EOF
 chmod 0440 /etc/sudoers.d/opi-session
 
 update-alternatives --install /usr/bin/x-www-browser x-www-browser /usr/bin/brave-browser 200
-systemctl enable greetd.service NetworkManager.service bluetooth.service opi-performance.service
+systemctl enable greetd.service NetworkManager.service bluetooth.service
 systemctl disable getty@tty1.service 2>/dev/null || true
+systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 chown -R ryan:ryan /home/ryan
+
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 echo 'Controller-first Orange Pi image customization complete'

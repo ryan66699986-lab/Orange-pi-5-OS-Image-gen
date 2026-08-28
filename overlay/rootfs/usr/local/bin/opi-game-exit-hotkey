@@ -35,7 +35,7 @@ def scan():
         try:
             device = InputDevice(path)
             keys = set(device.capabilities().get(ecodes.EV_KEY, []))
-            if ecodes.BTN_START in keys and (ecodes.BTN_MODE in keys or ecodes.BTN_SELECT in keys):
+            if ecodes.BTN_START in keys and ecodes.BTN_MODE in keys:
                 devices[path] = device
                 pressed[path] = set()
             else:
@@ -68,7 +68,7 @@ while True:
                     state.add(event.code)
                 else:
                     state.discard(event.code)
-                if ecodes.BTN_START in state and (ecodes.BTN_MODE in state or ecodes.BTN_SELECT in state):
+                if ecodes.BTN_START in state and ecodes.BTN_MODE in state:
                     exit_game()
                     state.clear()
         except OSError:
