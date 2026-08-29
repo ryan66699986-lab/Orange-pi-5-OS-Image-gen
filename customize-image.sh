@@ -102,7 +102,6 @@ cat > /home/ryan/.config/labwc/rc.xml <<'EOF'
   <core><reuseOutputMode>yes</reuseOutputMode></core>
   <keyboard>
     <keybind key="W-Return"><action name="Execute" command="foot"/></keybind>
-    <keybind key="W-o"><action name="Execute" command="foot -F -e opencode"/></keybind>
     <keybind key="W-g"><action name="Execute" command="sudo /usr/local/bin/opi-session set gaming"/></keybind>
   </keyboard>
 </labwc_config>
