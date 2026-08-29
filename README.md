@@ -10,8 +10,6 @@ The profile adds only:
 - a small runtime files overlay,
 - one thin wrapper that pins Armbian and invokes the normal `compile.sh` target.
 
-There is no separate validation framework. Hardware and application acceptance is performed after flashing by OpenCode running on the Orange Pi; see `ONBOARD-VALIDATION.md`.
-
 ## Pinned base
 
 - Board: `orangepi5pro`
@@ -33,7 +31,7 @@ The normal boot path is:
 
 `greetd` → automatic login → Gamescope → ES-DE 3.4.1
 
-If Gamescope cannot start, the session falls back directly to Labwc. A Desktop entry is also visible in ES-DE.
+If Gamescope cannot start, the session falls back directly to the configured desktop session. A Desktop entry is also visible in ES-DE.
 
 The image disables suspend and hibernation, does not install a screen locker, runs PipeWire/WirePlumber, exposes Network/Audio/Bluetooth utilities in ES-DE, and uses `udiskie` for removable-media automounting.
 
@@ -42,10 +40,10 @@ Each configured `~/ROMs/<system>` directory contains a `USB` link to `/media/rya
 ## Controller behaviour
 
 - No controller model whitelist.
-- EasySMX X20 is only the reference test controller.
+- EasySMX X20 is only the reference controller.
 - Guide+A toggles the native controller OSK.
 - Home+Start exits the currently launched game and returns to ES-DE.
-- Controller pointer navigation is available for Labwc and normal applications.
+- Controller pointer navigation is available for normal desktop applications.
 - `uinput` and `uhid` are loaded by the image; the pinned Armbian `current` kernel configuration itself is not modified by this profile.
 
 ## Media
@@ -59,11 +57,11 @@ Its private media stack is:
 
 Stremio requests `v4l2request-copy`. `glib-compile-schemas` runs after the Stremio GSettings schema is installed.
 
-No build-host step claims that RK3588 decoding worked. H.264, HEVC and HEVC Main10 are final acceptance requirements on the board. AV1 is tested and reported according to the Hantro/VSI state actually present. VP9 hardware decode is not advertised or required.
+H.264, HEVC and HEVC Main10 hardware decoding are runtime requirements. AV1 support is included where the kernel/media stack supports it. VP9 hardware decoding is not advertised or required.
 
-Moonlight is built natively from commit `f786e94c7b2f943e24e65d7d74deb539b827fc84`. It uses its normal native decoder/FFmpeg integration rather than being forced through the private Stremio FFmpeg/libmpv tree. Its stderr is retained in `~/.local/state/opi/moonlight.log` for the on-board agent.
+Moonlight is built natively from commit `f786e94c7b2f943e24e65d7d74deb539b827fc84`. It uses its normal native decoder/FFmpeg integration rather than being forced through the private Stremio FFmpeg/libmpv tree. Its stderr is retained in `~/.local/state/opi/moonlight.log`.
 
-Gamescope owns the appliance display session. The session selects a connected DRM connector and lets Gamescope use that connector's preferred mode. HDR is enabled only when the selected display EDID advertises HDR metadata and the installed Gamescope exposes HDR support.
+Gamescope owns the appliance gaming display session. The session selects a connected DRM connector and lets Gamescope use that connector's preferred mode. HDR is enabled only when the selected display EDID advertises HDR metadata and the installed Gamescope exposes HDR support.
 
 ## Applications and emulators
 
@@ -75,7 +73,6 @@ Included applications:
 - Brave (default browser)
 - Firefox (Ubuntu's supported Firefox snap integration)
 - OpenCode
-- Labwc
 - Gamescope
 - ES-DE 3.4.1
 - controller OSK and pointer navigation
@@ -146,8 +143,6 @@ Use a graphical imager such as Armbian Imager, Raspberry Pi Imager's custom-imag
 
 No command-line flashing instructions are part of this project.
 
-## First boot and acceptance
+## First boot
 
 The image initially creates user `ryan` with temporary password `orangepi`; the appliance forces password replacement before entering the normal ES-DE flow.
-
-After the image has booted successfully, launch OpenCode from ES-DE and use `ONBOARD-VALIDATION.md` as the acceptance plan. Host image generation alone is only a release-candidate build. Final success requires physical-board proof of boot, display, controller input, networking, audio, GPU acceleration and real Stremio H.264/HEVC/Main10 hardware-decoded playback.
