@@ -189,70 +189,11 @@ while IFS= read -r -d '' mo; do
   install -m644 "$mo" "/out/rootfs/usr/share/locale/$lang/LC_MESSAGES/stremio.mo"
 done < <(find /stremio/po -type f -name stremio.mo -print0 2>/dev/null)
 
-cat > /tmp/opi-stremio-hwdec.c <<'SHIM'
-#define _GNU_SOURCE
-#include <dlfcn.h>
-#include <stdint.h>
-#include <string.h>
-#include <mpv/client.h>
-
-static int (*real_set_property)(mpv_handle *, const char *, mpv_format, void *);
-static int (*real_set_property_string)(mpv_handle *, const char *, const char *);
-static int (*real_set_property_async)(mpv_handle *, uint64_t, const char *, mpv_format, void *);
-
-static void resolve_symbols(void) {
-    if (!real_set_property)
-        real_set_property = dlsym(RTLD_NEXT, "mpv_set_property");
-    if (!real_set_property_string)
-        real_set_property_string = dlsym(RTLD_NEXT, "mpv_set_property_string");
-    if (!real_set_property_async)
-        real_set_property_async = dlsym(RTLD_NEXT, "mpv_set_property_async");
-}
-
-int mpv_set_property(mpv_handle *ctx, const char *name, mpv_format format, void *data) {
-    resolve_symbols();
-    if (!real_set_property)
-        return MPV_ERROR_UNINITIALIZED;
-    if (name && strcmp(name, "hwdec") == 0 && format == MPV_FORMAT_STRING) {
-        char *forced = "v4l2request-copy";
-        return real_set_property(ctx, name, format, &forced);
-    }
-    return real_set_property(ctx, name, format, data);
-}
-
-int mpv_set_property_string(mpv_handle *ctx, const char *name, const char *data) {
-    resolve_symbols();
-    if (!real_set_property_string)
-        return MPV_ERROR_UNINITIALIZED;
-    if (name && strcmp(name, "hwdec") == 0)
-        return real_set_property_string(ctx, name, "v4l2request-copy");
-    return real_set_property_string(ctx, name, data);
-}
-
-int mpv_set_property_async(mpv_handle *ctx, uint64_t reply_userdata,
-                           const char *name, mpv_format format, void *data) {
-    resolve_symbols();
-    if (!real_set_property_async)
-        return MPV_ERROR_UNINITIALIZED;
-    if (name && strcmp(name, "hwdec") == 0 && format == MPV_FORMAT_STRING) {
-        char *forced = "v4l2request-copy";
-        return real_set_property_async(ctx, reply_userdata, name, format, &forced);
-    }
-    return real_set_property_async(ctx, reply_userdata, name, format, data);
-}
-SHIM
-
-cc -shared -fPIC -O2 -Wall -Wextra \
-  -I/opt/opi/media/include \
-  -o /out/rootfs/opt/stremio/libopi-stremio-hwdec.so \
-  /tmp/opi-stremio-hwdec.c -ldl
-
 cat > /out/rootfs/usr/local/bin/stremio <<'WRAP'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 export PATH="/opt/opi/media/bin:/usr/local/bin:/usr/bin:/bin"
 export LD_LIBRARY_PATH="/opt/opi/media/lib:/opt/opi/media/lib64:${LD_LIBRARY_PATH:-}"
-export LD_PRELOAD="/opt/stremio/libopi-stremio-hwdec.so${LD_PRELOAD:+:$LD_PRELOAD}"
 export SERVER_PATH=/opt/stremio/server.js
 export GDK_BACKEND=wayland,x11
 export MOZ_ENABLE_WAYLAND=1
@@ -281,15 +222,11 @@ chmod 0755 \
   /out/rootfs/usr/local/bin/ffmpeg-v4l2request
 
 assert_aarch64_tree /out/rootfs/opt/opi/media
-for f in \
-  /out/rootfs/opt/stremio/stremio \
-  /out/rootfs/opt/stremio/libopi-stremio-hwdec.so; do
-  DESC="$(file -b "$f")"
-  grep -Eqi 'ARM aarch64|aarch64' <<<"$DESC" || {
-    echo "Stremio artifact is not AArch64: $f :: $DESC" >&2
-    exit 1
-  }
-done
+DESC="$(file -b /out/rootfs/opt/stremio/stremio)"
+grep -Eqi 'ARM aarch64|aarch64' <<<"$DESC" || {
+  echo "Stremio artifact is not AArch64: $DESC" >&2
+  exit 1
+}
 
 collect_runtime_packages /out/rootfs/opt/opi/media /out/media-runtime.txt
 collect_runtime_packages /out/rootfs/opt/stremio /out/stremio-runtime.txt
