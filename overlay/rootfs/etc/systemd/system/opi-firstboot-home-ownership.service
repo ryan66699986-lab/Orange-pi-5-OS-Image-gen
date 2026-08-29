@@ -1,0 +1,11 @@
+[Unit]
+Description=Fix first-boot ownership for ryan home
+Before=greetd.service
+ConditionPathExists=/home/ryan/.config/opi/password-setup-required
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/chown -R ryan:ryan /home/ryan
+
+[Install]
+WantedBy=multi-user.target
