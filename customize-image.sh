@@ -102,6 +102,7 @@ cat > /home/ryan/.config/labwc/rc.xml <<'EOF'
   <core><reuseOutputMode>yes</reuseOutputMode></core>
   <keyboard>
     <keybind key="W-Return"><action name="Execute" command="foot"/></keybind>
+    <keybind key="W-o"><action name="Execute" command="foot -F -e opencode"/></keybind>
     <keybind key="W-g"><action name="Execute" command="sudo /usr/local/bin/opi-session set gaming"/></keybind>
   </keyboard>
 </labwc_config>
@@ -146,7 +147,7 @@ EOF
 chmod 0440 /etc/sudoers.d/opi-session
 
 update-alternatives --install /usr/bin/x-www-browser x-www-browser /usr/bin/brave-browser 200
-systemctl enable greetd.service NetworkManager.service bluetooth.service
+systemctl enable opi-firstboot-home-ownership.service greetd.service NetworkManager.service bluetooth.service
 systemctl disable getty@tty1.service 2>/dev/null || true
 systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
 chown -R ryan:ryan /home/ryan
