@@ -36,14 +36,31 @@ labwc_startup() {
     [[ "${OPI_DIRECT_GAMING:-0}" == 1 ]] && es-de &
 }
 
-desktop() {
+labwc_desktop() {
     export XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=labwc XDG_CURRENT_DESKTOP=labwc
+    export SDL_VIDEODRIVER='wayland,x11' QT_QPA_PLATFORM='wayland;xcb' MOZ_ENABLE_WAYLAND=1
+    unset DISPLAY
     exec labwc -s 'opi-session labwc-startup'
 }
 
+desktop() {
+    if ! command -v startxfce4 >/dev/null 2>&1; then
+        labwc_desktop
+    fi
+
+    # XFCE is the normal backup/setup desktop. startxfce4 starts the X server
+    # through xinit when invoked from greetd on the console.
+    export XDG_SESSION_TYPE=x11 XDG_SESSION_DESKTOP=xfce XDG_CURRENT_DESKTOP=XFCE
+    export SDL_VIDEODRIVER=x11 QT_QPA_PLATFORM=xcb MOZ_ENABLE_WAYLAND=0
+    unset WAYLAND_DISPLAY
+    exec startxfce4
+}
+
 direct() {
+    # Keep the lightweight labwc path as the console-first fallback when
+    # Gamescope itself cannot start; it launches ES-DE from labwc_startup.
     export OPI_DIRECT_GAMING=1
-    desktop
+    labwc_desktop
 }
 
 gamescope_client() {
